@@ -10,6 +10,10 @@ import Dashboard from "./pages/dashboard";
 import Landing from "./pages/landing";
 import Navbar from "./pages/navbar";
 import Footer from "./pages/footer";
+import Appointments from "./pages/appointments";
+import ProfileSetup from "./pages/profilesetup";
+import PatientList from "./pages/patientlist";
+import PatientDetails from "./pages/patientdetails";
 
 function App() {
   const [user, setUser] = useState(null);
@@ -37,8 +41,36 @@ function App() {
                 <ProtectedRoute>
                   <Dashboard />
                 </ProtectedRoute>
-              }
-            />
+              }/>
+               <Route
+              path="/appointments"
+              element={
+                <ProtectedRoute>
+                  <Appointments />
+                </ProtectedRoute>
+              }/>
+               <Route
+              path="/profile/setup"
+              element={
+                <ProtectedRoute>
+                  <ProfileSetup />
+                </ProtectedRoute>
+              }/>
+               <Route
+              path="/patientlist"
+              element={
+                <ProtectedRoute>
+                  <PatientList />
+                </ProtectedRoute>
+              }/>
+               <Route
+              path="/patient/:id"
+              element={
+                <ProtectedRoute>
+                  <PatientDetails />
+                </ProtectedRoute>
+              }/>
+
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </div>

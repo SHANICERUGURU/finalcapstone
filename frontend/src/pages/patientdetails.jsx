@@ -16,7 +16,7 @@ const PatientProfile = () => {
       try {
         setLoading(true);
 
-        // ✅ Retrieve token from localStorage
+        // Retrieve token from localStorage
         const token = localStorage.getItem("accessToken");
         if (!token) {
           throw new Error("Authentication token not found. Please log in again.");
