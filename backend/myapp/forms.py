@@ -25,10 +25,6 @@ class DoctorForm(forms.ModelForm):
             self.fields[field].widget.attrs['class'] = 'form-control'
     
 
-
-
-
-
 User = get_user_model()       
 class RegisterForm(UserCreationForm):
     class Meta:
