@@ -38,7 +38,6 @@ function ProfileSetup() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          // include auth token if your backend requires authentication
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
         body: JSON.stringify(formData),

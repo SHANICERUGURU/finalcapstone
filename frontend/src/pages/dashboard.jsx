@@ -7,17 +7,23 @@ const Dashboard = () => {
   const [doctor, setDoctor] = useState(null);
   const [roleMismatch, setRoleMismatch] = useState(false);
 
-  useEffect(() => {
-    fetch("http://127.0.0.1:8000/dashboard/") 
-      .then((res) => res.json())
-      .then((data) => {
-        setUser(data.user);
-        setPatient(data.patient || null);
-        setDoctor(data.doctor || null);
-        setRoleMismatch(data.role_mismatch || false);
-      })
-      .catch((err) => console.error("Error fetching dashboard data:", err));
-  }, []);
+ useEffect(() => {
+  const token = localStorage.getItem("token");
+  fetch("http://127.0.0.1:8000/dashboard/", {
+    headers: {
+      "Content-Type": "application/json",
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
+  })
+    .then((res) => res.json())
+    .then((data) => {
+      setUser(data.user);
+      setPatient(data.patient || null);
+      setDoctor(data.doctor || null);
+      setRoleMismatch(data.role_mismatch || false);
+    })
+    .catch((err) => console.error("Error fetching dashboard data:", err));
+}, []);
 
   if (!user) {
     // User not logged in

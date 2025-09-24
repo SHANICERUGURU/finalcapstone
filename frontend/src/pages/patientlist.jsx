@@ -12,7 +12,7 @@ function PatientList() {
   useEffect(() => {
     const fetchPatients = async () => {
       try {
-        const token = localStorage.getItem("token"); // if using JWT auth
+        const token = localStorage.getItem("token"); 
         const response = await fetch("http://127.0.0.1:8000/api/patients/", {
           headers: {
             "Content-Type": "application/json",
