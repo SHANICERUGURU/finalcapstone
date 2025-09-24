@@ -15,10 +15,17 @@ import ProfileSetup from "./pages/profilesetup";
 import PatientList from "./pages/patientlist";
 import PatientDetails from "./pages/patientdetails";
 
+function RegisterandLogout() {
+  localStorage.clear()
+  return <Register />;
+}
+
 function App() {
   const [user, setUser] = useState(null);
 
-  const handleLogout = () => {
+  
+
+const handleLogout = () => {
     localStorage.removeItem("token");
     setUser(null);
   };
@@ -34,7 +41,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
+            <Route path="/register" element={<RegisterandLogout />} />
             <Route
               path="/dashboard"
               element={
