@@ -128,6 +128,17 @@ def doctor_detail_api(request, pk):
     elif request.method == 'DELETE':
         doctor.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+    
+@api_view(['GET'])
+def doctor_specialties(request):
+    specialties = Doctor.Specialty.choices
+    return Response(dict(specialties))  
+
+@api_view(['GET'])
+def doctors_by_specialty(request, specialty):
+    doctors = Doctor.objects.filter(specialty=specialty)
+    serializer = DoctorSerializer(doctors, many=True)
+    return Response(serializer.data)  
 
 # appointment views
 @api_view(['GET', 'POST'])
