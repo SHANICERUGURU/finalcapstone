@@ -133,13 +133,25 @@ def doctor_detail_api(request, pk):
 @api_view(['GET', 'POST'])
 def appointments(request):
     if request.method == 'GET':
-        try:
-            # patient = request.user.patient_profile
-            appointments = Appointment.objects.all()
-            serializer = Appointmentserializer(appointments, many=True)
-            return Response(serializer.data)
-        except AttributeError:
-            return Response({'error': 'Patient profile not found'}, status=403)
+        if request.user.role == 'PATIENT':
+            try:
+                patient_profile = request.user.patient_profile
+                appointments = Appointment.objects.filter(patient=patient_profile)
+            except AttributeError:
+                return Response({'error': 'Patient profile not found'}, status=status.HTTP_403_FORBIDDEN)
+        
+        elif request.user.role == 'DOCTOR':
+            try:
+                doctor_profile = request.user.doctor_profile
+                appointments = Appointment.objects.filter(doctor=doctor_profile)
+            except AttributeError:
+                return Response({'error': 'Doctor profile not found'}, status=status.HTTP_403_FORBIDDEN)
+        
+        else:  # Admin or other roles
+            appointments = Appointment.objects.all()  # Or restrict as needed
+        
+        serializer = Appointmentserializer(appointments, many=True)
+        return Response(serializer.data)
     
     elif request.method == 'POST':
         try:
@@ -150,7 +162,38 @@ def appointments(request):
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         except AttributeError:
-            return Response({'error': 'Patient profile not found'}, status=403)
+            return Response({'error': 'Patient profile not found'}, status=status.HTTP_403_FORBIDDEN)
+    elif request.method == 'POST':
+       try:
+        patient = request.user.patient_profile
+        serializer = Appointmentserializer(data=request.data)
+        
+        if serializer.is_valid():
+            # ✅ EXTRA VALIDATION: Check if doctor has the selected specialty
+            doctor_id = request.data.get('doctor')
+            specialty = request.data.get('specialty')
+            
+            if doctor_id and specialty:
+                try:
+                    doctor = Doctor.objects.get(id=doctor_id)
+                    if doctor.specialty != specialty:
+                        return Response(
+                            {'error': 'Doctor specialty mismatch'}, 
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+                except Doctor.DoesNotExist:
+                    return Response(
+                        {'error': 'Doctor not found'}, 
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            
+            serializer.save(patient=patient)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+       except AttributeError:
+        return Response({'error': 'Patient profile not found'}, status=status.HTTP_403_FORBIDDEN)
         
 @login_required
 def update_appointment_status(request, appointment_id):
@@ -207,28 +250,6 @@ def user_login(request):
                 {'error': 'Invalid credentials'}, 
                 status=status.HTTP_401_UNAUTHORIZED
             )
-
-@api_view(['GET', 'PUT', 'PATCH'])
-@permission_classes([IsAuthenticated])
-def user_profile(request):
-    user = request.user
-    
-    if request.method == 'GET':
-        serializer = Userserializer(user)
-        return Response(serializer.data)
-    
-    elif request.method in ['PUT', 'PATCH']:  # Support both PUT and PATCH
-        partial = (request.method == 'PATCH')
-        serializer = Userserializer(
-            user, 
-            data=request.data, 
-            partial=partial  # Allow partial updates for PATCH
-        )
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)    
-    
 @api_view(['POST'])
 def user_logout(request):
     if request.method == 'POST':
