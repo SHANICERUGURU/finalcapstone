@@ -11,6 +11,19 @@ urlpatterns = [
     path('api/user/profile/', views.user_profile, name='user_profile_api'),
     path('api/users/',views.UserPost, name= 'user-post'),
     path('api/appointments/', views.appointments, name='appointments_api'),
+    path('api/appointments/<int:pk>/', views.appointment_detail, name='appointment_detail_api'),
+    path('api/doctors/specialties/', views.doctor_specialties, name='doctor_specialties'),
+    path('api/doctors/specialty/<str:specialty>/', views.doctors_by_specialty, name='doctors_by_specialty'),
+   
+    # authenication urls
+    path('api/auth/register/', views.registerUser, name='api-register'),
+    path('api/auth/login/', views.user_login, name='api-login'),
+    path('api/auth/logout/', views.user_logout, name='api-logout'),
+
+    # profile setup urls
+    path('api/profiles/patient/setup/', views.setup_patient_profile, name='api-setup-patient'),
+    path('api/profiles/doctor/setup/', views.setup_doctor_profile, name='api-setup-doctor'),
+
 
     
 ]

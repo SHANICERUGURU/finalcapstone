@@ -222,10 +222,28 @@ def update_appointment_status(request, appointment_id):
     else:
         messages.error(request, "You are not allowed to update this appointment.")
         return redirect("dashboard")
+    
+@api_view(['PUT'])
+def update_appointment_status_api(request, appointment_id):
+    try:
+        appointment = Appointment.objects.get(id=appointment_id)
+
+        # Only the doctor assigned to the appointment can update
+        if hasattr(request.user, 'doctor_profile') and appointment.doctor == request.user.doctor_profile:
+            new_status = request.data.get("status")
+            if new_status in dict(Appointment.appointment_status).keys():
+                appointment.status = new_status
+                appointment.save()
+                return Response({'message': 'Appointment status updated'}, status=200)
+            return Response({'error': 'Invalid status'}, status=400)
+        else:
+            return Response({'error': 'Not allowed'}, status=403)
+    except Appointment.DoesNotExist:
+        return Response({'error': 'Appointment not found'}, status=404)   
 
 # user views
 @api_view(['POST'])
-def UserPost(request):
+def registerUser(request):
     if request.method == 'POST':
         serializer = UserRegistrationSerializer(data=request.data)
         if serializer.is_valid():
@@ -267,3 +285,57 @@ def user_logout(request):
         # Delete the token to logout
         request.user.auth_token.delete()
         return Response({'message': 'Successfully logged out'})
+    
+@api_view(['GET', 'PUT', 'PATCH'])
+def user_profile(request):
+    user = request.user
+    
+    if request.method == 'GET':
+        serializer = Userserializer(user)
+        return Response(serializer.data)
+    
+    elif request.method in ['PUT', 'PATCH']:  # Support both PUT and PATCH
+        partial = (request.method == 'PATCH')
+        
+        # Use UserSerializer for updates (password is optional)
+        serializer = Userserializer(
+            user, 
+            data=request.data, 
+            partial=partial  # Allow partial updates for PATCH
+        )
+        
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+# profile setup views
+@api_view(['POST'])
+def setup_patient_profile(request):
+    try:
+        if hasattr(request.user, 'patient_profile'):
+            return Response({'error': 'Profile already exists'}, status=400)
+
+        serializer = PatientSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(user=request.user)  # link to logged-in user
+            return Response(serializer.data, status=201)
+        return Response(serializer.errors, status=400)
+    except Exception as e:
+        return Response({'error': str(e)}, status=400) 
+    
+@api_view(['POST'])
+def setup_doctor_profile(request):
+    try:
+        if hasattr(request.user, 'doctor_profile'):
+            return Response({'error': 'Profile already exists'}, status=400)
+
+        serializer = DoctorSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(user=request.user)  # link to logged-in user
+            return Response(serializer.data, status=201)
+        return Response(serializer.errors, status=400)
+    except Exception as e:
+        return Response({'error': str(e)}, status=400)    
+
