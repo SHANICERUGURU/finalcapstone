@@ -2,36 +2,15 @@ from django.shortcuts import render, redirect,get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
-
 from .models import *
-from .forms import *
 from django.contrib import messages
 from rest_framework import status
 from rest_framework.decorators import api_view,permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from .serializers import *
-
-
-
-
-@api_view(['POST','GET'])
-def UserPost(request):
-    if request.method == 'POST':
-        serializers=Userserializer(data=request.data)
-        if serializers.is_valid():
-            serializers.save()
-            return Response(serializers.data, status=status.HTTP_201_CREATED)
-        return Response(serializers.errors, status=status.HTTP_400_BAD_REQUEST)
-    elif request.method == 'GET':
-        users=User.objects.all()
-        serializers=Userserializer(users, many=True)
-        return Response(serializers.data, status=status.HTTP_201_CREATED)
-    
-    
-
-
-
+from rest_framework.authtoken.models import Token
+# patient views
 @api_view(['GET', 'POST'])
 def patient(request):
     if request.method == 'GET':
@@ -45,9 +24,6 @@ def patient(request):
             serializers.save()
             return Response(serializers.data, status=status.HTTP_201_CREATED)
         return Response(serializers.errors, status=status.HTTP_400_BAD_REQUEST)
-    
-
-
     
 @api_view(['GET', 'PUT', 'DELETE'])
 def patient_detail(request, pk):
@@ -115,7 +91,8 @@ def patient_detail(request, pk):
             {'message': 'Patient profile deleted successfully'}, 
             status=status.HTTP_204_NO_CONTENT
         )
-    
+
+# doctor views
 @api_view(['GET','POST'])
 def doctor_api(request):
     if request.method == 'GET':
@@ -152,8 +129,7 @@ def doctor_detail_api(request, pk):
         doctor.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-
-
+# appointment views
 @api_view(['GET', 'POST'])
 def appointments(request):
     if request.method == 'GET':
@@ -176,9 +152,6 @@ def appointments(request):
         except AttributeError:
             return Response({'error': 'Patient profile not found'}, status=403)
         
-
-
-
 @login_required
 def update_appointment_status(request, appointment_id):
     appointment = get_object_or_404(Appointment, id=appointment_id)
@@ -196,27 +169,69 @@ def update_appointment_status(request, appointment_id):
         messages.error(request, "You are not allowed to update this appointment.")
         return redirect("dashboard")
 
+# user views
+@api_view(['POST'])
+def UserPost(request):
+    if request.method == 'POST':
+        serializer = UserRegistrationSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save() 
+            
+            # Create authentication token
+            token, created = Token.objects.get_or_create(user=user)
+            
+            return Response({
+                'user': Userserializer(user).data, 
+                'token': token.key,
+                'message': 'User registered successfully'
+            }, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
-@api_view(['GET', 'PUT', 'POST'])
+@api_view(['POST'])
+def user_login(request):
+    if request.method == 'POST':
+        username = request.data.get('username')
+        password = request.data.get('password')
+        
+        user = authenticate(username=username, password=password)
+        
+        if user:
+            token, created = Token.objects.get_or_create(user=user)
+            return Response({
+                'user': Userserializer(user).data,
+                'token': token.key,
+                'message': 'Login successful'
+                })
+        else:
+            return Response(
+                {'error': 'Invalid credentials'}, 
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+@api_view(['GET', 'PUT', 'PATCH'])
+@permission_classes([IsAuthenticated])
 def user_profile(request):
     user = request.user
     
     if request.method == 'GET':
-        serializers = Userserializer(user)
-        return Response(serializers.data)
+        serializer = Userserializer(user)
+        return Response(serializer.data)
     
-    elif request.method == 'PUT':
-        serializers = Userserializer(user, data=request.data, partial=True)
-        if serializers.is_valid():
-            serializers.save()
-            return Response(serializers.data)
-    return Response(serializers.errors, status=400)   
+    elif request.method in ['PUT', 'PATCH']:  # Support both PUT and PATCH
+        partial = (request.method == 'PATCH')
+        serializer = Userserializer(
+            user, 
+            data=request.data, 
+            partial=partial  # Allow partial updates for PATCH
+        )
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)    
     
-
-       
-
-
-
-
-
-
+@api_view(['POST'])
+def user_logout(request):
+    if request.method == 'POST':
+        # Delete the token to logout
+        request.user.auth_token.delete()
+        return Response({'message': 'Successfully logged out'})
