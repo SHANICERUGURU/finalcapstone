@@ -9,9 +9,7 @@ urlpatterns = [
     path('api/doctors/', views.doctor_api, name='doctor_api'),
     path('api/doctors/<int:pk>/', views.doctor_detail_api, name= 'doctor_detail'),
     path('api/user/profile/', views.user_profile, name='user_profile_api'),
-    path('api/users/',views.UserPost, name= 'user-post'),
     path('api/appointments/', views.appointments, name='appointments_api'),
-    path('api/appointments/<int:pk>/', views.appointment_detail, name='appointment_detail_api'),
     path('api/doctors/specialties/', views.doctor_specialties, name='doctor_specialties'),
     path('api/doctors/specialty/<str:specialty>/', views.doctors_by_specialty, name='doctors_by_specialty'),
    
