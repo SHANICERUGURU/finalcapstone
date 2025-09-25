@@ -8,17 +8,29 @@ function PatientList() {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
-  // Fetch patients from backend API
   useEffect(() => {
     const fetchPatients = async () => {
       try {
-        const token = localStorage.getItem("token"); 
+        const token = localStorage.getItem("token");
+
+        // 🔑 Redirect if no token
+        if (!token) {
+          navigate("/login");
+          return;
+        }
+
         const response = await fetch("http://127.0.0.1:8000/api/doctor/patients/", {
           headers: {
             "Content-Type": "application/json",
-            Authorization: token ? `Bearer ${token}` : "",
+            Authorization: `Bearer ${token}`, 
           },
         });
+
+        if (response.status === 401) {
+          localStorage.removeItem("token");
+          navigate("/login");
+          return;
+        }
 
         if (!response.ok) {
           throw new Error("Failed to fetch patients");
@@ -34,7 +46,7 @@ function PatientList() {
     };
 
     fetchPatients();
-  }, []);
+  }, [navigate]);
 
   if (loading) return <Spinner animation="border" className="mt-5" />;
   if (error) return <Alert variant="danger">{error}</Alert>;
@@ -79,9 +91,7 @@ function PatientList() {
                         <strong>
                           {patient.user?.full_name || patient.user?.username}
                         </strong>
-                        {patient.emergency_contact_name && (
-                          <br />
-                        )}
+                        {patient.emergency_contact_name && <br />}
                         {patient.emergency_contact_name && (
                           <small className="text-muted">
                             Emergency: {patient.emergency_contact_name}

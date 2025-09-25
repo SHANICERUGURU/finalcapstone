@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 function ProfileSetup() {
   const [formData, setFormData] = useState({
@@ -18,6 +18,14 @@ function ProfileSetup() {
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
+  const token = localStorage.getItem("token");
+
+  useEffect(() => {
+    if (!token) {
+      setErrorMessage("You must be logged in to setup your profile.");
+    }
+  }, [token]);
+
   // handle input changes
   const handleChange = (e) => {
     setFormData({
@@ -33,12 +41,18 @@ function ProfileSetup() {
     setErrorMessage("");
     setSuccessMessage("");
 
+    if (!token) {
+      setErrorMessage("Missing authentication token. Please log in again.");
+      setLoading(false);
+      return;
+    }
+
     try {
       const res = await fetch("http://127.0.0.1:8000/api/profiles/patient/setup/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `Bearer ${token}`, 
         },
         body: JSON.stringify(formData),
       });
@@ -186,11 +200,7 @@ function ProfileSetup() {
           />
         </div>
 
-        <button
-          type="submit"
-          className="btn btn-primary"
-          disabled={loading}
-        >
+        <button type="submit" className="btn btn-primary" disabled={loading}>
           {loading ? "Saving..." : "Save"}
         </button>
       </form>

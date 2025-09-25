@@ -19,15 +19,24 @@ function Login({ setIsLoggedIn }) {
         body: JSON.stringify({ username, password }),
       });
 
-      if (!res.ok) throw new Error("Invalid username or password");
       const data = await res.json();
 
-      localStorage.setItem(ACCESS_TOKEN, data.access);
-      localStorage.setItem(REFRESH_TOKEN, data.refresh);
-      localStorage.setItem("role", data.role);
+      if (!res.ok) {
+        throw new Error(data.detail || "Invalid username or password");
+      }
+      if (data.access && data.refresh) {
+        localStorage.setItem(ACCESS_TOKEN, data.access);
+        localStorage.setItem(REFRESH_TOKEN, data.refresh);
+      }
+      if (data.role) {
+        localStorage.setItem("role", data.role);
+      }
+      if (data.user) {
+        localStorage.setItem("user", JSON.stringify(data.user));
+      }
 
       setIsLoggedIn(true);
-      navigate("/");
+      navigate("/dashboard"); // redirect to dashboard after login
     } catch (error) {
       alert(error.message || "An error occurred during login.");
     } finally {
@@ -48,7 +57,10 @@ function Login({ setIsLoggedIn }) {
       <div className="position-absolute top-0 start-0 w-100 h-100 bg-dark opacity-50"></div>
 
       {/* Centered login card */}
-      <div className="card shadow-lg p-4 rounded-4 position-relative z-1 w-100" style={{ maxWidth: "420px" }}>
+      <div
+        className="card shadow-lg p-4 rounded-4 position-relative z-1 w-100"
+        style={{ maxWidth: "420px" }}
+      >
         <h1 className="text-center mb-4 text-primary fw-bold">Login</h1>
 
         <form onSubmit={handleSubmit}>

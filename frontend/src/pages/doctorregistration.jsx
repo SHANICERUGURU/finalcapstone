@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { ACCESS_TOKEN } from "../constants"; // import the token key
 
 const DoctorRegistration = () => {
   const [formData, setFormData] = useState({
@@ -25,7 +26,9 @@ const DoctorRegistration = () => {
     setMessages([]);
 
     try {
-      const token = localStorage.getItem("token"); 
+      // Get JWT access token
+      const token = localStorage.getItem(ACCESS_TOKEN);
+
       const response = await fetch("http://127.0.0.1:8000/api/doctors/", {
         method: "POST",
         headers: {
@@ -38,15 +41,21 @@ const DoctorRegistration = () => {
       const data = await response.json();
 
       if (response.ok) {
-        setMessages([{ type: "success", text: "Doctor registered successfully!" }]);
+        setMessages([
+          { type: "success", text: "Doctor registered successfully!" },
+        ]);
         setFormData({ specialty: "", hospital: "", license_number: "" });
       } else {
         // Collect Django validation errors
         setErrors(data);
-        setMessages([{ type: "danger", text: "Please correct the errors below." }]);
+        setMessages([
+          { type: "danger", text: "Please correct the errors below." },
+        ]);
       }
     } catch (error) {
-      setMessages([{ type: "danger", text: "Something went wrong. Try again." }]);
+      setMessages([
+        { type: "danger", text: "Something went wrong. Try again." },
+      ]);
     }
   };
 
