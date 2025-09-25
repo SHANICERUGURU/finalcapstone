@@ -22,6 +22,4 @@ urlpatterns = [
     path('api/profiles/patient/setup/', views.setup_patient_profile, name='api-setup-patient'),
     path('api/profiles/doctor/setup/', views.setup_doctor_profile, name='api-setup-doctor'),
 
-
-    
 ]

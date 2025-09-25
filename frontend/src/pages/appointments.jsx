@@ -41,7 +41,7 @@ function Appointments() {
         }
 
         // 2. Fetch appointments
-        const appRes = await fetch("http://127.0.0.1:8000/appointments/", {
+        const appRes = await fetch("http://127.0.0.1:8000/api/appointments/", {
           headers: getAuthHeaders(),
         });
         if (appRes.ok) {
