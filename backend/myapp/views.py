@@ -416,3 +416,49 @@ def setup_doctor_profile(request):
     except Exception as e:
         return Response({'error': str(e)}, status=400)    
 
+
+
+@api_view(['GET'])
+def dashboard(request):
+    user = request.user
+    
+    data = {
+        'user': {
+            'id': user.id,
+            'username': user.username,
+            'email': user.email,
+            'role': user.role,
+            'full_name': user.get_full_name(),
+        }
+    }
+    
+    # Check for patient profile
+    try:
+        patient = Patient.objects.get(user=user)
+        data['patient'] = {
+            'user_full_name': patient.user.get_full_name(),
+            'blood_type': patient.blood_type,
+            'allergies': patient.allergies,
+            'chronic_illness': patient.chronic_illness,
+            # ... include other patient fields
+        }
+    except Patient.DoesNotExist:
+        data['patient'] = None
+    
+    # Check for doctor profile  
+    try:
+        doctor = Doctor.objects.get(user=user)
+        data['doctor'] = {
+            'user_full_name': doctor.user.get_full_name(),
+            'specialty': doctor.specialty,
+            'hospital': doctor.hospital,
+            # ... include other doctor fields
+        }
+    except Doctor.DoesNotExist:
+        data['doctor'] = None
+    
+    return Response(data)
+
+
+
+
