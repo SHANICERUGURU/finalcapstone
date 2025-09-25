@@ -13,7 +13,7 @@ function PatientList() {
     const fetchPatients = async () => {
       try {
         const token = localStorage.getItem("token"); 
-        const response = await fetch("http://127.0.0.1:8000/api/patients/", {
+        const response = await fetch("http://127.0.0.1:8000/api/doctor/patients/", {
           headers: {
             "Content-Type": "application/json",
             Authorization: token ? `Bearer ${token}` : "",

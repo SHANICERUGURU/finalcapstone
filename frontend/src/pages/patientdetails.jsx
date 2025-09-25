@@ -22,24 +22,46 @@ const PatientProfile = () => {
           throw new Error("Authentication token not found. Please log in again.");
         }
 
-        // Common headers
+        // Common headers - FIXED: Use "Token" instead of "Bearer"
         const headers = {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: `Token ${token}`,
         };
 
-        // Fetch patient info
-        const resPatient = await fetch(`/api/patients/${id}/`, { headers });
-        if (!resPatient.ok) throw new Error("Failed to fetch patient details");
+        // Fetch patient info from doctor endpoint
+        const resPatient = await fetch(`/api/doctor/patients/${id}/`, { headers });
+        
+        if (!resPatient.ok) {
+          if (resPatient.status === 403) {
+            throw new Error("Access denied. Doctor privileges required.");
+          }
+          if (resPatient.status === 404) {
+            throw new Error("Patient not found.");
+          }
+          throw new Error("Failed to fetch patient details");
+        }
+        
         const patientData = await resPatient.json();
 
-        // Fetch appointments
-        const resAppointments = await fetch(`/api/patients/${id}/appointments/`, { headers });
-        if (!resAppointments.ok) throw new Error("Failed to fetch appointments");
-        const appointmentsData = await resAppointments.json();
+        // Fetch appointments with patient filter
+        const resAppointments = await fetch(`/api/appointments/?patient=${id}`, { headers });
+        
+        if (resAppointments.ok) {
+          const appointmentsData = await resAppointments.json();
+          setAppointments(appointmentsData);
+        } else {
+          // If filtering doesn't work, use all appointments and filter client-side
+          const resAllAppointments = await fetch('/api/appointments/', { headers });
+          if (resAllAppointments.ok) {
+            const allAppointments = await resAllAppointments.json();
+            // Filter client-side by patient ID
+            const patientAppointments = allAppointments.filter(apt => apt.patient == id);
+            setAppointments(patientAppointments);
+          }
+        }
 
-        setPatient(patientData);
-        setAppointments(appointmentsData);
+        // Handle API response structure (could be {patient: {...}} or direct patient object)
+        setPatient(patientData.patient || patientData);
       } catch (err) {
         setError(err.message);
       } finally {
@@ -63,6 +85,9 @@ const PatientProfile = () => {
     return (
       <div className="container text-center mt-5">
         <div className="alert alert-danger">{error}</div>
+        <button onClick={() => navigate("/patients")} className="btn btn-primary mt-2">
+          <i className="bi bi-arrow-left"></i> Back to Patients
+        </button>
       </div>
     );
   }
@@ -71,9 +96,40 @@ const PatientProfile = () => {
     return (
       <div className="container text-center mt-5">
         <div className="alert alert-warning">Patient not found</div>
+        <button onClick={() => navigate("/patients")} className="btn btn-primary mt-2">
+          <i className="bi bi-arrow-left"></i> Back to Patients
+        </button>
       </div>
     );
   }
+
+  // Helper function to get patient name based on API response structure
+  const getPatientName = () => {
+    if (patient.user_info?.full_name) return patient.user_info.full_name;
+    if (patient.full_name) return patient.full_name;
+    if (patient.user?.first_name && patient.user?.last_name) 
+      return `${patient.user.first_name} ${patient.user.last_name}`;
+    return "Patient";
+  };
+
+  // Helper function to get patient email
+  const getPatientEmail = () => {
+    return patient.user_info?.email || patient.user?.email || "Not provided";
+  };
+
+  // Helper function to get patient phone
+  const getPatientPhone = () => {
+    return patient.user_info?.phone || patient.user?.phone || patient.phone_number || "Not provided";
+  };
+
+  // Helper function to get doctor name from appointment
+  const getDoctorName = (appointment) => {
+    if (appointment.doctor_name) return appointment.doctor_name;
+    if (appointment.doctor?.user?.first_name && appointment.doctor?.user?.last_name)
+      return `Dr. ${appointment.doctor.user.first_name} ${appointment.doctor.user.last_name}`;
+    if (appointment.doctor?.user_name) return `Dr. ${appointment.doctor.user_name}`;
+    return "Doctor not assigned";
+  };
 
   return (
     <div className="container mt-4">
@@ -92,7 +148,7 @@ const PatientProfile = () => {
                 <a href="/patients">Patients</a>
               </li>
               <li className="breadcrumb-item active">
-                {patient?.user?.fullName || "Patient"}
+                {getPatientName()}
               </li>
             </ol>
           </nav>
@@ -120,10 +176,19 @@ const PatientProfile = () => {
               </div>
 
               <h6 className="text-muted">Basic Details</h6>
-              <p><strong>Name:</strong> {patient?.user?.fullName}</p>
-              <p><strong>Username:</strong> {patient?.user?.username}</p>
-              <p><strong>Email:</strong> {patient?.user?.email}</p>
-              <p><strong>Phone:</strong> {patient?.phone_number || "Not provided"}</p>
+              <p><strong>Name:</strong> {getPatientName()}</p>
+              <p><strong>Email:</strong> {getPatientEmail()}</p>
+              <p><strong>Phone:</strong> {getPatientPhone()}</p>
+              
+              {/* Display age if available */}
+              {patient.user_info?.age && (
+                <p><strong>Age:</strong> {patient.user_info.age}</p>
+              )}
+              
+              {/* Display gender if available */}
+              {patient.user_info?.gender && (
+                <p><strong>Gender:</strong> {patient.user_info.gender}</p>
+              )}
 
               <hr />
 
@@ -136,6 +201,15 @@ const PatientProfile = () => {
               </p>
               <p><strong>Allergies:</strong> {patient?.allergies || "None"}</p>
               <p><strong>Chronic Conditions:</strong> {patient?.chronic_illness || "None"}</p>
+              
+              {/* Display additional medical info if available */}
+              {patient?.current_medications && (
+                <p><strong>Current Medications:</strong> {patient.current_medications}</p>
+              )}
+              
+              {patient?.family_medical_history && (
+                <p><strong>Family History:</strong> {patient.family_medical_history}</p>
+              )}
             </div>
           </div>
         </div>
@@ -165,14 +239,46 @@ const PatientProfile = () => {
             </div>
             <div className="card-body">
               <p><strong>Insurance Type:</strong> {patient?.insurance_type || "Not provided"}</p>
-              <p><strong>Insurance ID:</strong> {patient?.insurance_id || "Not provided"}</p>
+            </div>
+          </div>
+
+          {/* Recent Activity Stats */}
+          <div className="card shadow-sm">
+            <div className="card-header bg-secondary text-white">
+              <h5 className="mb-0">Patient Statistics</h5>
+            </div>
+            <div className="card-body">
+              <div className="row text-center">
+                <div className="col-md-4">
+                  <div className="border rounded p-3">
+                    <h4 className="text-primary">{appointments.length}</h4>
+                    <p className="mb-0 text-muted">Total Appointments</p>
+                  </div>
+                </div>
+                <div className="col-md-4">
+                  <div className="border rounded p-3">
+                    <h4 className="text-success">
+                      {appointments.filter(apt => apt.status === 'COMPLETED').length}
+                    </h4>
+                    <p className="mb-0 text-muted">Completed</p>
+                  </div>
+                </div>
+                <div className="col-md-4">
+                  <div className="border rounded p-3">
+                    <h4 className="text-warning">
+                      {appointments.filter(apt => apt.status === 'SCHEDULED').length}
+                    </h4>
+                    <p className="mb-0 text-muted">Upcoming</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Appointment History */}
-      <div className="card shadow-sm">
+      <div className="card shadow-sm mt-4">
         <div className="card-header bg-secondary text-white">
           <h5 className="mb-0">Appointment History</h5>
         </div>
@@ -192,10 +298,10 @@ const PatientProfile = () => {
                 <tbody>
                   {appointments.map((appt, index) => (
                     <tr key={index}>
-                      <td>{appt.date}</td>
-                      <td>{appt.time}</td>
-                      <td>Dr. {appt.doctor?.fullName}</td>
-                      <td>{appt.reason}</td>
+                      <td>{appt.date || "N/A"}</td>
+                      <td>{appt.time || "N/A"}</td>
+                      <td>{getDoctorName(appt)}</td>
+                      <td>{appt.reason || "Not specified"}</td>
                       <td>
                         <span
                           className={`badge ${
@@ -208,7 +314,7 @@ const PatientProfile = () => {
                               : "bg-secondary"
                           }`}
                         >
-                          {appt.status}
+                          {appt.status || "UNKNOWN"}
                         </span>
                       </td>
                     </tr>
@@ -229,6 +335,12 @@ const PatientProfile = () => {
       <div className="d-flex gap-2 mt-4">
         <button onClick={() => navigate(`/patients/${id}/edit`)} className="btn btn-primary">
           <i className="bi bi-pencil"></i> Edit Patient
+        </button>
+        <button onClick={() => navigate(`/appointments/new?patient=${id}`)} className="btn btn-success">
+          <i className="bi bi-plus-circle"></i> New Appointment
+        </button>
+        <button onClick={() => window.print()} className="btn btn-outline-secondary">
+          <i className="bi bi-printer"></i> Print Profile
         </button>
       </div>
     </div>

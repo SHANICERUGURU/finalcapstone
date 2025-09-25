@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from .serializers import *
 from rest_framework.authtoken.models import Token
+from django.db.models import Q
 # patient views
 @api_view(['GET', 'POST'])
 def patient(request):
@@ -139,6 +140,82 @@ def doctors_by_specialty(request, specialty):
     doctors = Doctor.objects.filter(specialty=specialty)
     serializer = DoctorSerializer(doctors, many=True)
     return Response(serializer.data)  
+
+@api_view(['GET'])
+def patient_list(request):
+    # --- Access control ---
+    if not request.user.is_doctor():
+        return Response(
+            {'error': 'Doctor access required'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+
+    if not hasattr(request.user, 'doctor_profile'):
+        return Response(
+            {'error': 'Doctor profile not found. Please complete your profile.'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+
+    # --- Query patients ---
+    patients = Patient.objects.all().select_related('user')
+
+    #  filter
+    search_query = request.GET.get('search', '').strip()
+    if search_query:
+        patients = patients.filter(
+            Q(user__first_name__icontains=search_query) |
+            Q(user__last_name__icontains=search_query) |
+            Q(user__email__icontains=search_query) |
+            Q(blood_type__icontains=search_query)
+        )
+
+    # --- Serialize & respond ---
+    serializer = DoctorPatientSerializer(patients, many=True)
+    return Response(serializer.data)
+
+@api_view(['GET', 'PUT'])
+def patient_detail(request, pk):
+    # Check if user is a doctor
+    if not request.user.is_doctor():
+        return Response(
+            {'error': 'Doctor access required'}, 
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    try:
+        # Get the specific patient
+        patient = Patient.objects.select_related('user').get(pk=pk)
+    except Patient.DoesNotExist:
+        return Response(
+            {'error': 'Patient not found'}, 
+            status=status.HTTP_404_NOT_FOUND
+        )
+    
+    if request.method == 'GET':
+        # Get patient details with all related data
+        patient_serializer = DoctorPatientDetailSerializer(patient)
+        
+        # Get patient's appointments
+        appointments = Appointment.objects.filter(patient=patient).select_related('doctor__user')
+        appointment_serializer = Appointmentserializer(appointments, many=True)
+        
+        return Response({
+            'patient': patient_serializer.data,
+            'appointments': appointment_serializer.data,
+            'appointment_count': appointments.count(),
+            'upcoming_appointments': appointments.filter(
+                date__gte=timezone.now().date()
+            ).count()
+        })
+    
+    elif request.method == 'PUT':
+        # Doctors can update medical information (but not user personal info)
+        serializer = DoctorPatientUpdateSerializer(patient, data=request.data, partial=True)
+        
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 # appointment views
 @api_view(['GET', 'POST'])
