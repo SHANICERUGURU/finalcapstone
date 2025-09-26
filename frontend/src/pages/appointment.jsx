@@ -56,7 +56,7 @@ function Appointments() {
 
         if (docsRes.ok) {
           const doctorsData = await docsRes.json();
-          console.log("Doctors data:", doctorsData); // Debug: check what data you're getting
+          console.log("Doctors data:", doctorsData); // Check what fields are available
           setDoctors(doctorsData);
         }
       } catch (err) {
@@ -159,19 +159,25 @@ function Appointments() {
     { value: "cardio", label: "Cardiologist" }
   ];
 
-  // ✅ FIXED: Function to get doctor display name
+  // ✅ FIXED: Get doctor display name - check what fields are available
   const getDoctorDisplayName = (doctor) => {
-    // Try different possible field names for the doctor's name
+    // Check the console log to see what fields are available in doctor objects
     if (doctor.user_full_name) return doctor.user_full_name;
     if (doctor.full_name) return doctor.full_name;
     if (doctor.name) return doctor.name;
     if (doctor.user?.get_full_name) return doctor.user.get_full_name;
+    if (doctor.user?.first_name && doctor.user?.last_name) 
+      return `${doctor.user.first_name} ${doctor.user.last_name}`;
+    if (doctor.first_name && doctor.last_name) 
+      return `${doctor.first_name} ${doctor.last_name}`;
     if (doctor.user?.username) return doctor.user.username;
     if (doctor.username) return doctor.username;
+    if (doctor.user?.email) return doctor.user.email;
+    if (doctor.email) return doctor.email;
     return "Unknown Doctor";
   };
 
-  // ✅ FIXED: Function to get specialty label
+  // ✅ FIXED: Get specialty label
   const getSpecialtyLabel = (specialtyValue) => {
     const specialty = specialtyOptions.find(s => s.value === specialtyValue);
     return specialty ? specialty.label : specialtyValue;

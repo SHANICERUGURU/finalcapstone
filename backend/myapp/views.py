@@ -283,7 +283,6 @@ def appointments(request, appointment_id=None):
         return Response(serializer.data)
 
     elif request.method == 'POST':
-        # ✅ Only patients can create
         if request.user.role != 'PATIENT':
             return Response({'error': 'Only patients can create appointments'}, status=status.HTTP_403_FORBIDDEN)
 

@@ -28,8 +28,7 @@ class DoctorSerializer(serializers.ModelSerializer):
 
 
 class Appointmentserializer(serializers.ModelSerializer):
-    patient_name = serializers.CharField(source='patient.user.get_full_name', read_only=True)
-    doctor_name = serializers.CharField(source='doctor.user.get_full_name', read_only=True)
+    user_full_name = serializers.CharField(source='user.get_full_name', read_only=True)
     
     class Meta:
         model = Appointment
