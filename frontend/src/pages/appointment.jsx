@@ -56,6 +56,7 @@ function Appointments() {
 
         if (docsRes.ok) {
           const doctorsData = await docsRes.json();
+          console.log("Doctors data:", doctorsData); // Debug: check what data you're getting
           setDoctors(doctorsData);
         }
       } catch (err) {
@@ -106,7 +107,6 @@ function Appointments() {
         
         setTimeout(() => setSuccessMessage(""), 3000);
       } else {
-        // Handle specific backend errors
         if (responseData.error === 'Patient profile not found') {
           setError("Please complete your patient profile first");
         } else if (responseData.error === 'Doctor specialty mismatch') {
@@ -123,13 +123,11 @@ function Appointments() {
     }
   };
 
-  // ✅ FIXED: Cancel appointment with proper error handling
+  // Cancel appointment
   const cancelAppointment = async (id) => {
     if (!window.confirm("Are you sure you want to cancel this appointment?")) return;
 
     try {
-      console.log("Attempting to cancel appointment ID:", id);
-      
       const res = await fetch(`http://127.0.0.1:8000/api/appointments/${id}/`, {
         method: "DELETE",
         headers: getAuthHeaders(),
@@ -138,13 +136,11 @@ function Appointments() {
       const responseData = await res.json();
 
       if (res.ok) {
-        console.log("Appointment cancelled successfully");
         setAppointments(appointments.filter((app) => app.id !== id));
         setSuccessMessage("Appointment cancelled successfully!");
         setError("");
         setTimeout(() => setSuccessMessage(""), 3000);
       } else {
-        console.error("Failed to cancel appointment:", responseData);
         setError(`Failed to cancel: ${responseData.error || 'Unknown error'}`);
       }
     } catch (err) {
@@ -162,6 +158,24 @@ function Appointments() {
     { value: "PAEDIATRICIAN", label: "Paediatrician" },
     { value: "cardio", label: "Cardiologist" }
   ];
+
+  // ✅ FIXED: Function to get doctor display name
+  const getDoctorDisplayName = (doctor) => {
+    // Try different possible field names for the doctor's name
+    if (doctor.user_full_name) return doctor.user_full_name;
+    if (doctor.full_name) return doctor.full_name;
+    if (doctor.name) return doctor.name;
+    if (doctor.user?.get_full_name) return doctor.user.get_full_name;
+    if (doctor.user?.username) return doctor.user.username;
+    if (doctor.username) return doctor.username;
+    return "Unknown Doctor";
+  };
+
+  // ✅ FIXED: Function to get specialty label
+  const getSpecialtyLabel = (specialtyValue) => {
+    const specialty = specialtyOptions.find(s => s.value === specialtyValue);
+    return specialty ? specialty.label : specialtyValue;
+  };
 
   const getStatusBadgeClass = (status) => {
     switch (status) {
@@ -262,12 +276,18 @@ function Appointments() {
                           .filter((d) => !form.specialty || d.specialty === form.specialty)
                           .map((d) => (
                             <option key={d.id} value={d.id}>
-                              Dr. {d.user_full_name}
+                              {/* ✅ FIXED: Use the function to get proper doctor name */}
+                              Dr. {getDoctorDisplayName(d)} - {getSpecialtyLabel(d.specialty)}
                             </option>
                           ))}
                       </select>
                       {!form.specialty && (
                         <div className="form-text">Please select a specialty first</div>
+                      )}
+                      {form.specialty && (
+                        <div className="form-text">
+                          {doctors.filter(d => d.specialty === form.specialty).length} doctor(s) available in {getSpecialtyLabel(form.specialty)}
+                        </div>
                       )}
                     </div>
                   </div>
@@ -370,10 +390,8 @@ function Appointments() {
                         <tr key={app.id}>
                           <td>{new Date(app.date).toLocaleDateString()}</td>
                           <td>{app.time}</td>
-                          <td>Dr. {app.doctor_name}</td>
-                          <td>
-                            {specialtyOptions.find(s => s.value === app.specialty)?.label || app.specialty}
-                          </td>
+                          <td>Dr. {app.doctor_name || "Unknown Doctor"}</td>
+                          <td>{getSpecialtyLabel(app.specialty)}</td>
                           <td>{app.reason || "Not specified"}</td>
                           <td>
                             <span className={`badge ${getStatusBadgeClass(app.status)}`}>
