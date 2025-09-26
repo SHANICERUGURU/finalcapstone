@@ -1,6 +1,5 @@
 import { useState } from "react";
 import "./App.css";
-
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/login";
@@ -14,6 +13,7 @@ import Appointments from "./pages/appointments";
 import ProfileSetup from "./pages/profilesetup";
 import PatientList from "./pages/patientlist";
 import PatientDetails from "./pages/patientdetails";
+import DoctorRegistration from "./pages/doctorregistration"; 
 
 function RegisterandLogout() {
   localStorage.clear();
@@ -28,7 +28,7 @@ function Logout({ setUser }) {
 
 function App() {
   const [user, setUser] = useState(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false); // Add this line
 
   const handleLogout = () => {
     localStorage.clear();
@@ -39,18 +39,12 @@ function App() {
   return (
     <BrowserRouter>
       <div className="d-flex flex-column min-vh-100">
-        {/* Navbar always at the top */}
         <Navbar user={user} onLogout={handleLogout} />
-
-        {/* Main page content */}
         <div className="flex-grow-1">
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/logout" element={<Logout setUser={setUser} />} />
-            <Route
-              path="/login"
-              element={<Login setIsLoggedIn={setIsLoggedIn} />}
-            />
+            <Route path="/login" element={<Login setIsLoggedIn={setIsLoggedIn} />} /> {/* Fix here */}
             <Route path="/register" element={<RegisterandLogout />} />
             <Route
               path="/dashboard"
@@ -68,11 +62,20 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            {/* Profile Setup Routes */}
             <Route
-              path="/profile/setup"
+              path="/profile-setup"
               element={
                 <ProtectedRoute>
                   <ProfileSetup />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/doctor-profile-setup"  
+              element={
+                <ProtectedRoute>
+                  <DoctorRegistration />
                 </ProtectedRoute>
               }
             />
@@ -92,12 +95,9 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </div>
-
-        {/* Footer always at the bottom */}
         <Footer />
       </div>
     </BrowserRouter>

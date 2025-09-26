@@ -55,12 +55,10 @@ function Appointments() {
     fetchData();
   }, []);
 
-  // Handle form input
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  // Handle new appointment submit
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrors({});
@@ -78,7 +76,6 @@ function Appointments() {
         return;
       }
 
-      // Refresh appointments
       const newApp = await res.json();
       setAppointments([...appointments, newApp]);
       setForm({ specialty: "", date: "", time: "", doctor: "", reason: "" });
@@ -91,16 +88,16 @@ function Appointments() {
   if (loading) return <p>Loading...</p>;
 
   return (
-    <div className="container mt-4">
-      <div className="row">
-        <div className="col-md-12">
+    <div className="container-fluid py-4 w-100">
+      <div className="row w-100">
+        <div className="col-12">
           {user && patient ? (
             <>
               <h2 className="mb-4">Welcome, {patient.user.username}!</h2>
               {/* rest of your JSX unchanged */}
             </>
           ) : user ? (
-            <div className="alert alert-warning">
+            <div className="alert alert-warning w-100">
               <h4 className="alert-heading">Profile Setup Required</h4>
               <p>You need to complete your patient profile before accessing appointments.</p>
               <hr />
@@ -109,7 +106,7 @@ function Appointments() {
               </Link>
             </div>
           ) : (
-            <div className="alert alert-danger">
+            <div className="alert alert-danger w-100">
               <h4 className="alert-heading">Access Denied</h4>
               <p>You must be logged in to access this page.</p>
               <hr />

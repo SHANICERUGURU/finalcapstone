@@ -432,8 +432,14 @@ def dashboard(request):
             'blood_type': patient_profile.blood_type or '',
             'allergies': patient_profile.allergies or '',
             'chronic_illness': patient_profile.chronic_illness or '',
-            'date_of_birth': patient_profile.date_of_birth.isoformat() if patient_profile.date_of_birth else None,
-            'emergency_contact': patient_profile.emergency_contact or '',
+            'emergency_contact_name': patient_profile.emergency_contact_name or '',
+            'emergency_contact_phone': patient_profile.emergency_contact_phone or '',
+            'insurance_type': patient_profile.insurance_type or '',
+            'current_medications': patient_profile.current_medications or '',
+            'family_medical_history': patient_profile.family_medical_history or '',
+            'last_appointment': patient_profile.last_appointment,
+            'last_doctor': patient_profile.last_doctor or '',
+
         }
     else:
         data['patient'] = None
@@ -441,11 +447,9 @@ def dashboard(request):
     # Add doctor data if exists and no mismatch or matches role
     if doctor_profile and (user.role == 'doctor' or not role_mismatch):
         data['doctor'] = {
-            'user_full_name': user.get_full_name(),
             'specialty': doctor_profile.specialty or '',
             'hospital': doctor_profile.hospital or '',
             'license_number': doctor_profile.license_number or '',
-            'years_of_experience': doctor_profile.years_of_experience or 0,
         }
     else:
         data['doctor'] = None

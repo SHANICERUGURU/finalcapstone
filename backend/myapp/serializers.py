@@ -11,6 +11,7 @@ class Userserializer(serializers.ModelSerializer):
         }
 
 class PatientSerializer(serializers.ModelSerializer):
+    user = serializers.PrimaryKeyRelatedField(read_only=True)
     user_name = serializers.CharField(source='user.get_full_name', read_only=True)
     class Meta:
         model = Patient
@@ -18,6 +19,7 @@ class PatientSerializer(serializers.ModelSerializer):
 
 
 class DoctorSerializer(serializers.ModelSerializer):
+    user = serializers.PrimaryKeyRelatedField(read_only=True)
     user_name = serializers.CharField(source='user.get_full_name', read_only=True)
     specialty_display = serializers.CharField(source='get_specialty_display', read_only=True)
     class Meta:
