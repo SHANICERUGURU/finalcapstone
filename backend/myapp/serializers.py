@@ -119,7 +119,26 @@ class DoctorPatientDetailSerializer(serializers.ModelSerializer):
         return None
 
 class DoctorPatientUpdateSerializer(serializers.ModelSerializer):
-    
     class Meta:
         model = Patient
-        fields = '__all__'
+        fields = [
+            'blood_type',
+            'allergies',
+            'chronic_illness',
+            'current_medications',
+            'family_medical_history',
+            'emergency_contact_name',
+            'emergency_contact_phone',
+            'insurance_type',
+            'last_appointment',  
+            'last_doctor', 
+        ]
+        extra_kwargs = {
+            'blood_type': {'required': False},
+            'allergies': {'required': False},
+            'chronic_illness': {'required': False},
+            'current_medications': {'required': False},
+            'family_medical_history': {'required': False},
+            'last_appointment': {'required': False},
+            'last_doctor': {'required': False},
+        }

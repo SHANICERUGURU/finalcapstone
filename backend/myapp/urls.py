@@ -15,6 +15,7 @@ urlpatterns = [
     path('api/doctor/patients/', views.patient_list, name='doctor-patient-list'),
     path('api/doctor/patients/<int:pk>/', views.patient_detail, name='doctor-patient-detail'),
     path('dashboard/', views.dashboard, name='dashboard_api'),
+    path('api/doctor/patients/<int:pk>/update/', views.doctor_update_patient, name='doctor-update-patient'),
     
     # authenication urls
     path('api/auth/register/', views.registerUser, name='api-register'),

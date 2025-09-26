@@ -145,7 +145,6 @@ def doctors_by_specialty(request, specialty):
 
 @api_view(['GET'])
 def patient_list(request):
-    # --- Access control ---
     if not request.user.is_doctor():
         return Response(
             {'error': 'Doctor access required'},
@@ -455,3 +454,61 @@ def dashboard(request):
         data['doctor'] = None
     
     return Response(data)
+
+@api_view(['PUT', 'PATCH'])
+@permission_classes([IsAuthenticated])
+def doctor_update_patient(request, pk):
+    if not request.user.is_doctor():
+        return Response(
+            {'error': 'Doctor access required'}, 
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    # Check if doctor has a profile
+    if not hasattr(request.user, 'doctor_profile'):
+        return Response(
+            {'error': 'Doctor profile not found. Please complete your profile.'},
+            status=status.HTTP_403_FORBIDDEN
+        )
+    
+    try:
+        # Get the specific patient
+        patient = Patient.objects.select_related('user').get(pk=pk)
+    except Patient.DoesNotExist:
+        return Response(
+            {'error': 'Patient not found'}, 
+            status=status.HTTP_404_NOT_FOUND
+        )
+    
+    # Determine if this is a partial update (PATCH) or full update (PUT)
+    partial = (request.method == 'PATCH')
+    
+    # Use the update serializer
+    serializer = DoctorPatientUpdateSerializer(
+        patient, 
+        data=request.data, 
+        partial=partial
+    )
+    
+    if serializer.is_valid():
+        restricted_fields = ['user', 'user_id']  
+        
+        for field in restricted_fields:
+            if field in request.data:
+                return Response(
+                    {'error': f'Cannot modify {field}. Contact administrator for user information changes.'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        
+        serializer.save()
+        
+        # Return updated patient data
+        updated_patient = Patient.objects.get(pk=pk)
+        response_serializer = DoctorPatientDetailSerializer(updated_patient)
+        
+        return Response({
+            'message': 'Patient information updated successfully',
+            'patient': response_serializer.data
+        })
+    
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

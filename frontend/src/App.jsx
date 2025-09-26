@@ -9,11 +9,12 @@ import Dashboard from "./pages/dashboard";
 import Landing from "./pages/landing";
 import Navbar from "./pages/navbar";
 import Footer from "./pages/footer";
-import Appointments from "./pages/appointments";
+import Appointments from "./pages/appointment";
 import ProfileSetup from "./pages/profilesetup";
 import PatientList from "./pages/patientlist";
 import PatientDetails from "./pages/patientdetails";
-import DoctorRegistration from "./pages/doctorregistration"; 
+import DoctorRegistration from "./pages/doctorregistration";
+import PatientEditForm from "./pages/patienteditform"; 
 
 function RegisterandLogout() {
   localStorage.clear();
@@ -59,6 +60,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Appointments />
+                </ProtectedRoute>
+              }
+            />
+             <Route
+              path="/patienteditform/:id"
+              element={
+                <ProtectedRoute>
+                  <PatientEditForm />
                 </ProtectedRoute>
               }
             />
