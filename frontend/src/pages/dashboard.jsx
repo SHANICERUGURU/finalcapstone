@@ -119,7 +119,6 @@ const Dashboard = () => {
         }
     };
 
-    // Loading state
     if (loading) {
         return (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
@@ -133,7 +132,6 @@ const Dashboard = () => {
         );
     }
 
-    // Error state
     if (error) {
         return (
             <div style={{ padding: '2rem' }}>
@@ -154,7 +152,6 @@ const Dashboard = () => {
         );
     }
 
-    // Profile setup prompt
     if (showProfileSetup && user) {
         return (
             <div style={{ padding: '2rem', minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
@@ -203,113 +200,209 @@ const Dashboard = () => {
         );
     }
 
-    // Main Dashboard
     return (
-        <div style={{ padding: '2rem', minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
-            {/* Header */}
+        <div className="container-fluid py-4" style={{ minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
             <div className="row mb-4">
-                <div className="col-12 d-flex justify-content-between align-items-center">
-                    <div>
-                        <h1 className="text-primary mb-1">
-                            {patient
-                                ? `Welcome back, ${patient.user_full_name || user.full_name || user.username}!`
-                                : doctor
-                                    ? `Welcome back, Dr. ${doctor.user_full_name || user.full_name || user.username}!`
-                                    : `Welcome back, ${user.full_name || user.username}!`}
-                        </h1>
-                        <div className="d-flex align-items-center gap-3 flex-wrap">
-                            <span className="badge bg-secondary fs-6">{user.role}</span>
-                            <span className="text-muted">{user.email}</span>
+                <div className="col-12">
+                    <div className="d-flex justify-content-between align-items-center flex-wrap">
+                        <div>
+                            <h1 className="text-primary mb-2">
+                                {patient
+                                    ? `Welcome back, ${patient.user_full_name || user.full_name || user.username}!`
+                                    : doctor
+                                        ? `Welcome back, Dr. ${doctor.user_full_name || user.full_name || user.username}!`
+                                        : `Welcome back, ${user.full_name || user.username}!`}
+                            </h1>
+                            <div className="d-flex align-items-center gap-3 flex-wrap">
+                                <span className="badge bg-secondary fs-6">{user.role}</span>
+                                <span className="text-muted">{user.email}</span>
+                            </div>
                         </div>
+                        <button onClick={handleLogout} className="btn btn-outline-danger">
+                            <i className="bi bi-box-arrow-right me-2"></i>Logout
+                        </button>
                     </div>
-                    <button onClick={handleLogout} className="btn btn-outline-danger">
-                        Logout
-                    </button>
                 </div>
             </div>
 
-            {/* Role mismatch */}
             {roleMismatch && (
-                <div className="alert alert-warning d-flex align-items-center mb-4">
-                    <i className="bi bi-exclamation-triangle-fill me-3 fs-4"></i>
-                    <div>
-                        <h5 className="alert-heading mb-2">Profile Role Mismatch Detected</h5>
-                        <p className="mb-0">
-                            Your account role (<strong>{user.role}</strong>) doesn't match your profile type. Please contact support.
-                        </p>
+                <div className="row mb-4">
+                    <div className="col-12">
+                        <div className="alert alert-warning d-flex align-items-center">
+                            <i className="bi bi-exclamation-triangle-fill me-3 fs-4"></i>
+                            <div className="flex-grow-1">
+                                <h5 className="alert-heading mb-2">Profile Role Mismatch Detected</h5>
+                                <p className="mb-0">
+                                    Your account role (<strong>{user.role}</strong>) doesn't match your profile type. Please contact support.
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}
 
-            {/* Patient Dashboard */}
             {patient && (
-                <div className="card shadow-sm mb-4">
-                    <div className="card-header bg-primary text-white">
-                        <h5 className="mb-0">Your Patient Dashboard</h5>
-                    </div>
-                    <div className="card-body row">
-                        <div className="col-12 col-md-6">
-                            <div className="card bg-light mb-3">
-                                <div className="card-body">
-                                    <h6 className="card-title">Personal Information</h6>
-                                    <p><strong>Blood Type:</strong> {patient.blood_type || "Not specified"}</p>
-                                    <p><strong>Allergies:</strong> {patient.allergies || "None recorded"}</p>
-                                    <p><strong>Chronic Conditions:</strong> {patient.chronic_illness || "None recorded"}</p>
-                                    <p><strong>Current Medications:</strong> {patient.current_medications || "None recorded"}</p>
-                                    <p><strong>Emergency Contact:</strong> {patient.emergency_contact_name ? `${patient.emergency_contact_name} (${patient.emergency_contact_phone || "No phone"})` : "Not provided"}</p>
-                                    <p><strong>Insurance Type:</strong> {patient.insurance_type || "Not specified"}</p>
-                                    <p><strong>Last Doctor Visited:</strong> {patient.last_doctor || "Not recorded"}</p>
-                                    <p><strong>Last Appointment Date:</strong> {patient.last_appointment || "Not recorded"}</p>
-                                </div>
+                <div className="row mb-4">
+                    <div className="col-12">
+                        <div className="card shadow-sm border-0">
+                            <div className="card-header bg-primary text-white py-3">
+                                <h5 className="mb-0">
+                                    <i className="bi bi-person-heart me-2"></i>
+                                    Patient Dashboard
+                                </h5>
                             </div>
-                        </div>
-                        <div className="col-12 col-md-6 d-flex flex-column justify-content-center">
-                            <h6>Quick Actions</h6>
-                            <div className="d-grid gap-2 d-md-flex">
-                                <button
-                                    className="btn btn-primary me-md-2"
-                                    onClick={() => navigate("/appointments")}>
-                                    Book Appointment
-                                </button>
+                            <div className="card-body p-4">
+                                <div className="row align-items-stretch">
+                                    <div className="col-12 col-lg-8 mb-3 mb-lg-0">
+                                        <div className="card h-100 border-0 bg-light">
+                                            <div className="card-body">
+                                                <h6 className="card-title text-primary mb-3">
+                                                    <i className="bi bi-info-circle me-2"></i>
+                                                    Personal Information
+                                                </h6>
+                                                <div className="row g-3">
+                                                    <div className="col-12 col-sm-6">
+                                                        <strong className="d-block text-muted small">Blood Type</strong>
+                                                        <span className="badge bg-info fs-6">{patient.blood_type || "Not specified"}</span>
+                                                    </div>
+                                                    <div className="col-12 col-sm-6">
+                                                        <strong className="d-block text-muted small">Insurance Type</strong>
+                                                        <span className="badge bg-success fs-6">{patient.insurance_type || "Not specified"}</span>
+                                                    </div>
+                                                    <div className="col-12">
+                                                        <strong className="d-block text-muted small">Allergies</strong>
+                                                        <span>{patient.allergies || "None recorded"}</span>
+                                                    </div>
+                                                    <div className="col-12">
+                                                        <strong className="d-block text-muted small">Chronic Conditions</strong>
+                                                        <span>{patient.chronic_illness || "None recorded"}</span>
+                                                    </div>
+                                                    <div className="col-12">
+                                                        <strong className="d-block text-muted small">Current Medications</strong>
+                                                        <span>{patient.current_medications || "None recorded"}</span>
+                                                    </div>
+                                                    <div className="col-12">
+                                                        <strong className="d-block text-muted small">Emergency Contact</strong>
+                                                        <div>
+                                                            {patient.emergency_contact_name ? (
+                                                                <>
+                                                                    {patient.emergency_contact_name}
+                                                                    {patient.emergency_contact_phone && (
+                                                                        <div className="text-muted small">{patient.emergency_contact_phone}</div>
+                                                                    )}
+                                                                </>
+                                                            ) : "Not provided"}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="col-12 col-lg-4">
+                                        <div className="card h-100 border-0 bg-light">
+                                            <div className="card-body d-flex flex-column justify-content-center text-center">
+                                                <h6 className="text-primary mb-3">
+                                                    <i className="bi bi-lightning me-2"></i>
+                                                    Quick Actions
+                                                </h6>
+                                                <div className="d-grid gap-2">
+                                                    <button
+                                                        className="btn btn-primary btn-lg py-3"
+                                                        onClick={() => navigate("/appointments")}>
+                                                        <i className="bi bi-calendar-plus me-2"></i>
+                                                        Book Appointment
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* Doctor Dashboard */}
             {doctor && (
-                <div className="card shadow-sm mb-4">
-                    <div className="card-header bg-info text-white">
-                        <h5 className="mb-0">Your Doctor Dashboard</h5>
-                    </div>
-                    <div className="card-body row">
-                        <div className="col-12 col-md-6">
-                            <div className="card bg-light mb-3">
-                                <div className="card-body">
-                                    <h6 className="card-title">Professional Information</h6>
-                                    <p><strong>Specialty:</strong> {doctor.specialty || "Not specified"}</p>
-                                    <p><strong>Hospital:</strong> {doctor.hospital || "Not specified"}</p>
-                                    {doctor.license_number && (
-                                        <p><strong>License Number:</strong> {doctor.license_number}</p>
-                                    )}
-                                </div>
+                <div className="row mb-4">
+                    <div className="col-12">
+                        <div className="card shadow-sm border-0">
+                            <div className="card-header bg-info text-white py-3">
+                                <h5 className="mb-0">
+                                    <i className="bi bi-briefcase me-2"></i>
+                                    Doctor Dashboard
+                                </h5>
                             </div>
-                        </div>
-                        <div className="col-12 col-md-6 d-flex flex-column justify-content-center">
-                            <h6>Quick Actions</h6>
-                            <div className="d-grid gap-2 d-md-flex">
-                                <button className="btn btn-info me-md-2">View Appointments</button>
-                                <button className="btn btn-outline-info me-md-2" onClick={() => navigate("/patientlist")} >Manage Patients</button>
+                            <div className="card-body p-4">
+                                <div className="row align-items-stretch">
+                                    <div className="col-12 col-lg-8 mb-3 mb-lg-0">
+                                        <div className="card h-100 border-0 bg-light">
+                                            <div className="card-body">
+                                                <h6 className="card-title text-info mb-3">
+                                                    <i className="bi bi-hospital me-2"></i>
+                                                    Professional Information
+                                                </h6>
+                                                <div className="row g-3">
+                                                    <div className="col-12 col-sm-6">
+                                                        <strong className="d-block text-muted small">Specialty</strong>
+                                                        <span className="badge bg-info text-white fs-6">
+                                                            {doctor.specialty || "Not specified"}
+                                                        </span>
+                                                    </div>
+                                                    <div className="col-12 col-sm-6">
+                                                        <strong className="d-block text-muted small">Status</strong>
+                                                        <span className="badge bg-success fs-6">Active</span>
+                                                    </div>
+                                                    <div className="col-12">
+                                                        <strong className="d-block text-muted small">Hospital</strong>
+                                                        <span>{doctor.hospital || "Not specified"}</span>
+                                                    </div>
+                                                    {doctor.license_number && (
+                                                        <div className="col-12">
+                                                            <strong className="d-block text-muted small">License Number</strong>
+                                                            <span className="font-monospace">{doctor.license_number}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="col-12 col-lg-4">
+                                        <div className="card h-100 border-0 bg-light">
+                                            <div className="card-body d-flex flex-column justify-content-center text-center">
+                                                <h6 className="text-info mb-3">
+                                                    <i className="bi bi-lightning me-2"></i>
+                                                    Quick Actions
+                                                </h6>
+                                                <div className="d-grid gap-2">
+                                                    <button 
+                                                        className="btn btn-info btn-lg py-3"
+                                                        onClick={() => navigate("/appointments")}>
+                                                        <i className="bi bi-calendar-week me-2"></i>
+                                                        View Appointments
+                                                    </button>
+                                                    <button 
+                                                        className="btn btn-outline-info py-3"
+                                                        onClick={() => navigate("/patientlist")}>
+                                                        <i className="bi bi-people me-2"></i>
+                                                        Manage Patients
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* Footer */}
-            <footer className="text-center py-4 bg-white border-top mt-5">
+            <footer className="text-center py-4 mt-5">
                 <small className="text-muted">
+                    <i className="bi bi-shield-lock me-1"></i>
                     All information is kept confidential and secure. Only essential medical staff will have access to this data.
                 </small>
             </footer>
