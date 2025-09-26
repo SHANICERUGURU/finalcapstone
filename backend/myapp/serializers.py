@@ -35,23 +35,31 @@ class Appointmentserializer(serializers.ModelSerializer):
 
 # for creating new users with hashed passwords
 class UserRegistrationSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True) 
-    
+    password = serializers.CharField(write_only=True)
+    confirm_password = serializers.CharField(write_only=True, required=False)
+
     class Meta:
         model = User
-        fields = '__all__'
-    
+        fields = [
+            "first_name", "last_name", "username", "email",
+            "phone_number", "gender", "date_of_birth", "role",
+            "password", "confirm_password"
+        ]
+
+    def validate(self, data):
+        if data.get("password") != data.get("confirm_password"):
+            raise serializers.ValidationError("Passwords do not match.")
+        return data
+
     def create(self, validated_data):
-        # Custom logic for user creation
+        validated_data.pop("confirm_password", None)
         user = User.objects.create_user(**validated_data)
-        user.set_password(validated_data['password'])  # Hash password properly
-        user.save()
         return user
 
 
 # Add these to your serializers.py
 class DoctorPatientSerializer(serializers.ModelSerializer):
-    """Serializer for patient list (doctor's view)"""
+
     patient_id = serializers.IntegerField(source='id')
     full_name = serializers.SerializerMethodField()
     email = serializers.CharField(source='user.email')
@@ -76,7 +84,7 @@ class DoctorPatientSerializer(serializers.ModelSerializer):
         return None
 
 class DoctorPatientDetailSerializer(serializers.ModelSerializer):
-    """Detailed patient info for doctors"""
+    
     user_info = serializers.SerializerMethodField()
     full_medical_history = serializers.SerializerMethodField()
     
@@ -110,8 +118,7 @@ class DoctorPatientDetailSerializer(serializers.ModelSerializer):
         return None
 
 class DoctorPatientUpdateSerializer(serializers.ModelSerializer):
-    """Serializer for doctors to update patient medical records"""
+    
     class Meta:
         model = Patient
         fields = '__all__'
-        # Doctors can't update user personal information through this endpoint

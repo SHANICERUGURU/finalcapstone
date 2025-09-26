@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { ACCESS_TOKEN, USER_DATA, USER_ROLE } from "../constants";
 
 function Register() {
   const [formData, setFormData] = useState({
@@ -58,12 +59,30 @@ function Register() {
       const data = await res.json();
 
       if (!res.ok) {
-        setErrorMessage(data.detail || JSON.stringify(data));
+        // Handle validation errors from Django
+        if (data.errors) {
+          // If there are field-specific errors
+          const errorMessages = Object.values(data.errors).flat().join(', ');
+          setErrorMessage(errorMessages);
+        } else if (data.detail) {
+          setErrorMessage(data.detail);
+        } else {
+          setErrorMessage(JSON.stringify(data));
+        }
         return;
       }
 
-      if (data.token) localStorage.setItem("token", data.token);
-      if (data.user) localStorage.setItem("user", JSON.stringify(data.user));
+      // Store token and user data based on your Django response format
+      if (data.token) {
+        localStorage.setItem(ACCESS_TOKEN, data.token);
+      }
+
+      if (data.user) {
+        localStorage.setItem(USER_DATA, JSON.stringify(data.user));
+        if (data.user.role) {
+          localStorage.setItem(USER_ROLE, data.user.role);
+        }
+      }
 
       navigate("/dashboard");
     } catch (error) {
@@ -156,16 +175,16 @@ function Register() {
                   <label htmlFor="username" className="form-label fw-semibold">
                     Username *
                   </label>
-                  <input
-                    type="text"
-                    className="form-control form-control-lg"
-                    id="username"
-                    name="username"
-                    value={formData.username}
-                    onChange={handleChange}
-                    required
-                    placeholder="johndoe123"
-                  />
+                    <input
+                      type="text"
+                      className="form-control form-control-lg"
+                      id="username"
+                      name="username"
+                      value={formData.username}
+                      onChange={handleChange}
+                      required
+                      placeholder="johndoe123"
+                    />
                 </div>
 
                 <div className="mb-3">
