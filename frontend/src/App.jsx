@@ -122,7 +122,7 @@ function App() {
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </div>
-        <Footer />
+        <Footer user={user} onLogout={handleLogout} />
       </div>
     </BrowserRouter>
   );

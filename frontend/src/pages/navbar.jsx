@@ -73,16 +73,7 @@ function Navbar({ user, onLogout }) {
                   </>
                 )}
 
-                {/* Logout */}
-                <li className="nav-item">
-                  <button
-                    onClick={onLogout}
-                    className="btn btn-outline-light btn-sm ms-lg-3 fw-medium"
-                  >
-                    Logout
-                  </button>
-                </li>
-              </>
+                </>
             ) : (
               <>
                 {/* Guest Links */}
