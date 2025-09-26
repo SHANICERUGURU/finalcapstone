@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ACCESS_TOKEN,REFRESH_TOKEN} from "../constants";
+import api from "../api";
 
-function Login({ setIsLoggedIn }) {
+function Login({ setUser }) {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
@@ -33,7 +34,9 @@ function Login({ setIsLoggedIn }) {
             if (data.role){
                 localStorage.setItem("role", data.role);
             }
-            setIsLoggedIn(true);
+            // Fetch user data
+            const userResponse = await api.get("/dashboard/");
+            setUser(userResponse.data.user);
             navigate("/dashboard");
         } catch (error) {
             console.error("Login error:", error);

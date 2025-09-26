@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "./App.css";
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
@@ -14,7 +14,9 @@ import ProfileSetup from "./pages/profilesetup";
 import PatientList from "./pages/patientlist";
 import PatientDetails from "./pages/patientdetails";
 import DoctorRegistration from "./pages/doctorregistration";
-import PatientEditForm from "./pages/patienteditform"; 
+import PatientEditForm from "./pages/patienteditform";
+import api from "./api";
+import { ACCESS_TOKEN } from "./constants";
 
 function RegisterandLogout() {
   localStorage.clear();
@@ -29,7 +31,20 @@ function Logout({ setUser }) {
 
 function App() {
   const [user, setUser] = useState(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(false); // Add this line
+
+  useEffect(() => {
+    const token = localStorage.getItem(ACCESS_TOKEN);
+    if (token) {
+      api.get("/dashboard/")
+        .then(response => {
+          setUser(response.data.user);
+        })
+        .catch(error => {
+          console.error("Failed to load user:", error);
+          localStorage.clear();
+        });
+    }
+  }, []);
 
   const handleLogout = () => {
     localStorage.clear();
@@ -45,7 +60,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/logout" element={<Logout setUser={setUser} />} />
-            <Route path="/login" element={<Login setIsLoggedIn={setIsLoggedIn} />} /> {/* Fix here */}
+            <Route path="/login" element={<Login setUser={setUser} />} />
             <Route path="/register" element={<RegisterandLogout />} />
             <Route
               path="/dashboard"
