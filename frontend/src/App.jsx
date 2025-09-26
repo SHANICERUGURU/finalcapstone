@@ -20,13 +20,20 @@ function RegisterandLogout() {
   return <Register />;
 }
 
+function Logout({ setUser }) {
+  localStorage.clear();
+  setUser(null);
+  return <Navigate to="/" />;
+}
+
 function App() {
   const [user, setUser] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
+    localStorage.clear();
     setUser(null);
+    return <Navigate to="/" />;
   };
 
   return (
@@ -39,6 +46,7 @@ function App() {
         <div className="flex-grow-1">
           <Routes>
             <Route path="/" element={<Landing />} />
+            <Route path="/logout" element={<Logout setUser={setUser} />} />
             <Route
               path="/login"
               element={<Login setIsLoggedIn={setIsLoggedIn} />}

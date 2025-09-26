@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { ACCESS_TOKEN, REFRESH_TOKEN,USER_DATA,USER_ROLE } from "../constants";
 
 function Register() {
   const [formData, setFormData] = useState({

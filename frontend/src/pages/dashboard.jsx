@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { ACCESS_TOKEN, REFRESH_TOKEN } from "../constants";
 
 const Dashboard = () => {
   const [user, setUser] = useState(null);
@@ -8,11 +9,13 @@ const Dashboard = () => {
   const [roleMismatch, setRoleMismatch] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showProfileSetup, setShowProfileSetup] = useState(false);
   const navigate = useNavigate();
 
+  // Separate refresh token function
   const refreshAccessToken = async () => {
     try {
-      const refresh = localStorage.getItem("refresh");
+      const refresh = localStorage.getItem(REFRESH_TOKEN);
       if (!refresh) return false;
 
       const res = await fetch("http://127.0.0.1:8000/api/token/refresh/", {
@@ -24,106 +27,131 @@ const Dashboard = () => {
       if (!res.ok) return false;
 
       const data = await res.json();
-      localStorage.setItem("token", data.access); // update access token
+      localStorage.setItem(ACCESS_TOKEN, data.access);
       return true;
     } catch (err) {
       console.error("Failed to refresh token:", err);
       return false;
     }
   };
-  const fetchDashboardData = async () => {
-    try {
-      let token = localStorage.getItem("token");
-      if (!token) {
-        setLoading(false);
-        return;
-      }
 
-      let response = await fetch("http://127.0.0.1:8000/dashboard/", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
+  const handleLogout = () => {
+    localStorage.removeItem(ACCESS_TOKEN);
+    localStorage.removeItem(REFRESH_TOKEN);
+    navigate("/login");
+  };
 
-      // If access token expired → try refresh
-      if (response.status === 401) {
-        const refreshed = await refreshAccessToken();
-        if (refreshed) {
-          token = localStorage.getItem("token");
-          response = await fetch("http://127.0.0.1:8000/dashboard/", {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-          });
-        } else {
-          localStorage.removeItem("token");
-          localStorage.removeItem("refresh");
-          navigate("/login");
-          return;
-        }
-      }
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch dashboard data: ${response.status}`);
-      }
-
-      const data = await response.json();
-      setUser(data.user);
-      setPatient(data.patient || null);
-      setDoctor(data.doctor || null);
-      setRoleMismatch(data.role_mismatch || false);
-    } catch (err) {
-      console.error("Error fetching dashboard data:", err);
-      setError("Failed to load dashboard data. Please try again.");
-    } finally {
-      setLoading(false);
+  const handleProfileSetup = (type) => {
+    if (type === 'patient') {
+      navigate('/profile-setup');
+    } else {
+      navigate('/doctor-profile-setup');
     }
   };
 
   useEffect(() => {
-    fetchDashboardData();
-  }, [navigate]);
-  const handleLogout = async () => {
-    try {
-      await fetch("http://127.0.0.1:8000/logout/", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-          "Content-Type": "application/json",
-        },
-      });
-    } catch (err) {
-      console.error("Logout API error:", err);
-    } finally {
-      localStorage.removeItem("token");
-      localStorage.removeItem("refresh");
-      navigate("/login");
-    }
-  };
+    let isMounted = true; // Flag to prevent state updates after unmount
 
-  // Loading state
+    const fetchDashboardData = async () => {
+      try {
+        if (!isMounted) return;
+
+        setError(null);
+        const token = localStorage.getItem(ACCESS_TOKEN);
+        
+        // Check token without causing re-renders
+        if (!token) {
+          if (isMounted) {
+            localStorage.removeItem(ACCESS_TOKEN);
+            localStorage.removeItem(REFRESH_TOKEN);
+            navigate("/login");
+          }
+          return;
+        }
+
+        let response = await fetch("http://127.0.0.1:8000/dashboard/", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (response.status === 401) {
+          const refreshed = await refreshAccessToken();
+          if (refreshed) {
+            const newToken = localStorage.getItem(ACCESS_TOKEN);
+            response = await fetch("http://127.0.0.1:8000/dashboard/", {
+              headers: {
+                Authorization: `Bearer ${newToken}`,
+                "Content-Type": "application/json",
+              },
+            });
+          } else {
+            if (isMounted) {
+              localStorage.removeItem(ACCESS_TOKEN);
+              localStorage.removeItem(REFRESH_TOKEN);
+              navigate("/login");
+            }
+            return;
+          }
+        }
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch dashboard data: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        if (!isMounted) return;
+
+        // Batch state updates
+        setUser(data.user);
+        setPatient(data.patient || null);
+        setDoctor(data.doctor || null);
+        setRoleMismatch(data.role_mismatch || false);
+
+        // Set profile setup flag last
+        const shouldShowProfileSetup = !data.patient && !data.doctor && !data.role_mismatch;
+        if (showProfileSetup !== shouldShowProfileSetup) {
+          setShowProfileSetup(shouldShowProfileSetup);
+        }
+
+      } catch (err) {
+        if (!isMounted) return;
+        console.error("Error fetching dashboard data:", err);
+        setError("Failed to load dashboard data. Please try again.");
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchDashboardData();
+
+    // Cleanup function
+    return () => {
+      isMounted = false;
+    };
+  }, []); // Empty dependency array - navigate is stable
+
+  // Show loading state
   if (loading) {
     return (
       <div className="container mt-5">
         <div className="row justify-content-center">
           <div className="col-md-6 text-center">
-            <div
-              className="spinner-border text-primary"
-              role="status"
-              style={{ width: "3rem", height: "3rem" }}
-            >
+            <div className="spinner-border text-primary" role="status" style={{ width: "3rem", height: "3rem" }}>
               <span className="visually-hidden">Loading...</span>
             </div>
-            <p className="mt-3">Loading your dashboard...</p>
+            <p className="mt-3">Setting up your dashboard...</p>
           </div>
         </div>
       </div>
     );
   }
 
-  // Error state
+  // Show error state
   if (error) {
     return (
       <div className="container mt-5">
@@ -134,15 +162,12 @@ const Dashboard = () => {
               <p>{error}</p>
               <hr />
               <div className="d-flex gap-2">
-                <button
-                  className="btn btn-primary"
-                  onClick={() => window.location.reload()}
-                >
+                <button className="btn btn-primary" onClick={() => window.location.reload()}>
                   Try Again
                 </button>
-                <Link to="/login" className="btn btn-outline-primary">
-                  Go to Login
-                </Link>
+                <button className="btn btn-outline-secondary" onClick={handleLogout}>
+                  Back to Login
+                </button>
               </div>
             </div>
           </div>
@@ -151,29 +176,69 @@ const Dashboard = () => {
     );
   }
 
-  // User not logged in
-  if (!user) {
+  // Profile Setup Screen
+  if (showProfileSetup && user) {
     return (
       <div className="container mt-5">
         <div className="row justify-content-center">
-          <div className="col-md-6">
-            <div className="card shadow-lg">
-              <div className="card-header bg-primary text-white text-center">
-                <h5 className="mb-0">Login to Access Your Dashboard</h5>
+          <div className="col-lg-8">
+            <div className="card shadow-lg border-0">
+              <div className="card-header bg-primary text-white text-center py-4">
+                <h2 className="mb-0">Welcome to Your Dashboard, {user.full_name || user.username}!</h2>
+                <p className="mb-0 mt-2">Let's get your profile set up</p>
               </div>
-              <div className="card-body">
-                <div className="d-grid gap-3">
-                  <Link to="/login" className="btn btn-success btn-lg">
-                    Login to Your Account
-                  </Link>
-                  <Link to="/register" className="btn btn-outline-primary">
-                    Create New Account
-                  </Link>
+              <div className="card-body p-5">
+                <div className="text-center mb-4">
+                  <p className="lead">
+                    Choose the type of profile that matches your role in the system.
+                  </p>
                 </div>
-                <hr />
-                <div className="text-center">
-                  <p className="text-muted mb-0">
-                    Access your health records and manage your profile
+                
+                <div className="row">
+                  <div className="col-md-6 mb-4">
+                    <div className="card h-100 border-primary">
+                      <div className="card-body text-center d-flex flex-column">
+                        <div className="mb-3">
+                          <i className="bi bi-heart-pulse display-4 text-primary"></i>
+                        </div>
+                        <h4 className="card-title text-primary">Patient Profile</h4>
+                        <p className="card-text flex-grow-1">
+                          I want to manage my health records, book appointments, and track my medical history.
+                        </p>
+                        <button 
+                          onClick={() => handleProfileSetup('patient')}
+                          className="btn btn-primary btn-lg mt-auto"
+                        >
+                          Set Up as Patient
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="col-md-6 mb-4">
+                    <div className="card h-100 border-info">
+                      <div className="card-body text-center d-flex flex-column">
+                        <div className="mb-3">
+                          <i className="bi bi-briefcase display-4 text-info"></i>
+                        </div>
+                        <h4 className="card-title text-info">Doctor Profile</h4>
+                        <p className="card-text flex-grow-1">
+                          I am a healthcare provider who wants to manage appointments and patient care.
+                        </p>
+                        <button 
+                          onClick={() => handleProfileSetup('doctor')}
+                          className="btn btn-info btn-lg mt-auto"
+                        >
+                          Set Up as Doctor
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="text-center mt-4">
+                  <p className="text-muted">
+                    You can always update your profile later from the settings menu.
                   </p>
                 </div>
               </div>
@@ -184,27 +249,27 @@ const Dashboard = () => {
     );
   }
 
+  // Main Dashboard Content
   return (
     <div className="container mt-4">
       {/* Header Section */}
       <div className="row mb-4">
         <div className="col">
-          <div className="d-flex justify-content-between align-items-start">
+          <div className="d-flex justify-content-between align-items-center">
             <div>
-              <h1 className="text-primary mb-2">
+              <h1 className="text-primary mb-1">
                 {patient
-                  ? `Welcome, ${patient.user_full_name || user.full_name || user.username}!`
+                  ? `Welcome back, ${patient.user_full_name || user.full_name || user.username}!`
                   : doctor
-                  ? `Welcome, Dr. ${doctor.user_full_name || user.full_name || user.username}!`
-                  : `Welcome, ${user.full_name || user.username}!`}
+                  ? `Welcome back, Dr. ${doctor.user_full_name || user.full_name || user.username}!`
+                  : `Welcome back, ${user.full_name || user.username}!`}
               </h1>
               <div className="d-flex align-items-center gap-3">
                 <span className="badge bg-secondary fs-6">{user.role}</span>
                 <span className="text-muted">{user.email}</span>
               </div>
             </div>
-            <button onClick={handleLogout} className="btn btn-danger btn-lg">
-              <i className="bi bi-box-arrow-right me-2"></i>
+            <button onClick={handleLogout} className="btn btn-outline-danger">
               Logout
             </button>
           </div>
@@ -215,29 +280,14 @@ const Dashboard = () => {
       {roleMismatch && (
         <div className="row mb-4">
           <div className="col">
-            <div
-              className="alert alert-warning alert-dismissible fade show"
-              role="alert"
-            >
-              <div className="d-flex">
+            <div className="alert alert-warning" role="alert">
+              <div className="d-flex align-items-center">
                 <i className="bi bi-exclamation-triangle-fill me-3 fs-4"></i>
                 <div>
-                  <h4 className="alert-heading">Profile Role Mismatch!</h4>
-                  <p className="mb-2">
-                    You registered as a{" "}
-                    <strong className="text-capitalize">{user.role}</strong> but
-                    set up a{" "}
-                    <strong className="text-capitalize">
-                      {user.profile_type}
-                    </strong>{" "}
-                    profile.
-                  </p>
+                  <h5 className="alert-heading mb-2">Profile Role Mismatch Detected</h5>
                   <p className="mb-0">
-                    Please contact administrator or{" "}
-                    <Link to="/delete-profile" className="alert-link fw-bold">
-                      delete your current profile
-                    </Link>{" "}
-                    to set up the correct one.
+                    Your account role (<strong>{user.role}</strong>) doesn't match your profile type. 
+                    Please contact support.
                   </p>
                 </div>
               </div>
@@ -249,8 +299,34 @@ const Dashboard = () => {
       {/* Patient Dashboard */}
       {patient && (
         <div className="row">
-          <div className="col-lg-8">
-            {/* Patient details here (unchanged) */}
+          <div className="col-12">
+            <div className="card shadow-sm">
+              <div className="card-header bg-primary text-white">
+                <h5 className="mb-0">Your Patient Dashboard</h5>
+              </div>
+              <div className="card-body">
+                <div className="row">
+                  <div className="col-md-4">
+                    <div className="card bg-light">
+                      <div className="card-body">
+                        <h6 className="card-title">Personal Information</h6>
+                        <p><strong>Blood Type:</strong> {patient.blood_type || 'Not specified'}</p>
+                        <p><strong>Allergies:</strong> {patient.allergies || 'None recorded'}</p>
+                        <p><strong>Chronic Conditions:</strong> {patient.chronic_illness || 'None recorded'}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="col-md-8">
+                    <h6>Quick Actions</h6>
+                    <div className="d-grid gap-2 d-md-flex">
+                      <button className="btn btn-primary me-md-2">Book Appointment</button>
+                      <button className="btn btn-outline-primary me-md-2">View Medical Records</button>
+                      <button className="btn btn-outline-primary">Message Doctor</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -258,63 +334,57 @@ const Dashboard = () => {
       {/* Doctor Dashboard */}
       {doctor && (
         <div className="row">
-          <div className="col-lg-8">
-            {/* Doctor details here (unchanged) */}
+          <div className="col-12">
+            <div className="card shadow-sm">
+              <div className="card-header bg-info text-white">
+                <h5 className="mb-0">Your Doctor Dashboard</h5>
+              </div>
+              <div className="card-body">
+                <div className="row">
+                  <div className="col-md-4">
+                    <div className="card bg-light">
+                      <div className="card-body">
+                        <h6 className="card-title">Professional Information</h6>
+                        <p><strong>Specialty:</strong> {doctor.specialty || 'Not specified'}</p>
+                        <p><strong>Hospital:</strong> {doctor.hospital || 'Not specified'}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="col-md-8">
+                    <h6>Quick Actions</h6>
+                    <div className="d-grid gap-2 d-md-flex">
+                      <button className="btn btn-info me-md-2">View Appointments</button>
+                      <button className="btn btn-outline-info me-md-2">Manage Patients</button>
+                      <button className="btn btn-outline-info">Medical Records</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
 
-      {/* No Profile Setup */}
-      {!patient && !doctor && (
-        <div className="row justify-content-center">
-          <div className="col-lg-8">
-            <div className="card shadow-sm border-0">
-              <div className="card-header bg-light text-center py-4">
-                <i className="bi bi-person-plus display-1 text-primary"></i>
-                <h3 className="mt-3">Complete Your Profile</h3>
-                <p className="text-muted">
-                  Set up your profile to get started with our services
-                </p>
+      {/* No profiles found */}
+      {!patient && !doctor && user && !roleMismatch && (
+        <div className="row">
+          <div className="col-12">
+            <div className="card shadow-sm">
+              <div className="card-header bg-warning text-dark">
+                <h5 className="mb-0">Setup Incomplete</h5>
               </div>
-              <div className="card-body p-5">
-                <div className="row text-center">
-                  <div className="col-md-6 mb-4">
-                    <div className="card h-100 border-primary">
-                      <div className="card-body">
-                        <i className="bi bi-heart-pulse display-4 text-primary"></i>
-                        <h5 className="card-title mt-3">Patient Profile</h5>
-                        <p className="card-text">
-                          Set up your health profile to book appointments and
-                          manage your medical records.
-                        </p>
-                        <Link
-                          to="/profile-setup"
-                          className="btn btn-primary stretched-link"
-                        >
-                          Set Up Patient Profile
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="col-md-6 mb-4">
-                    <div className="card h-100 border-info">
-                      <div className="card-body">
-                        <i className="bi bi-briefcase display-4 text-info"></i>
-                        <h5 className="card-title mt-3">Doctor Profile</h5>
-                        <p className="card-text">
-                          Set up your professional profile to manage
-                          appointments and patient care.
-                        </p>
-                        <Link
-                          to="/doctor-profile-setup"
-                          className="btn btn-info stretched-link"
-                        >
-                          Set Up Doctor Profile
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+              <div className="card-body text-center py-5">
+                <i className="bi bi-person-plus display-1 text-warning mb-3"></i>
+                <h4>Profile Setup Required</h4>
+                <p className="text-muted mb-4">
+                  Please set up your profile to access dashboard features.
+                </p>
+                <button 
+                  onClick={() => setShowProfileSetup(true)}
+                  className="btn btn-warning btn-lg"
+                >
+                  Complete Setup
+                </button>
               </div>
             </div>
           </div>

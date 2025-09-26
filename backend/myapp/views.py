@@ -12,7 +12,7 @@ from .serializers import *
 from rest_framework.authtoken.models import Token
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.db.models import Q
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny,IsAuthenticated
 # patient views
 @api_view(['GET', 'POST'])
 def patient(request):
@@ -387,11 +387,31 @@ def setup_doctor_profile(request):
     except Exception as e:
         return Response({'error': str(e)}, status=400)    
 
-
-
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def dashboard(request):
     user = request.user
+    
+    # Get user's actual profiles
+    patient_profile = Patient.objects.filter(user=user).first()
+    doctor_profile = Doctor.objects.filter(user=user).first()
+    
+    # Determine role mismatch
+    role_mismatch = False
+    profile_type = None
+    
+    if patient_profile and doctor_profile:
+        # User has both profiles - use the one that matches their role
+        if user.role == 'patient':
+            doctor_profile = None
+        else:
+            patient_profile = None
+    elif user.role == 'patient' and doctor_profile:
+        role_mismatch = True
+        profile_type = 'doctor'
+    elif user.role == 'doctor' and patient_profile:
+        role_mismatch = True
+        profile_type = 'patient'
     
     data = {
         'user': {
@@ -400,36 +420,34 @@ def dashboard(request):
             'email': user.email,
             'role': user.role,
             'full_name': user.get_full_name(),
-        }
+        },
+        'role_mismatch': role_mismatch,
+        'profile_type': profile_type
     }
     
-    # Check for patient profile
-    try:
-        patient = Patient.objects.get(user=user)
+    # Add patient data if exists and no mismatch or matches role
+    if patient_profile and (user.role == 'patient' or not role_mismatch):
         data['patient'] = {
-            'user_full_name': patient.user.get_full_name(),
-            'blood_type': patient.blood_type,
-            'allergies': patient.allergies,
-            'chronic_illness': patient.chronic_illness,
-            # ... include other patient fields
+            'user_full_name': user.get_full_name(),
+            'blood_type': patient_profile.blood_type or '',
+            'allergies': patient_profile.allergies or '',
+            'chronic_illness': patient_profile.chronic_illness or '',
+            'date_of_birth': patient_profile.date_of_birth.isoformat() if patient_profile.date_of_birth else None,
+            'emergency_contact': patient_profile.emergency_contact or '',
         }
-    except Patient.DoesNotExist:
+    else:
         data['patient'] = None
     
-    # Check for doctor profile  
-    try:
-        doctor = Doctor.objects.get(user=user)
+    # Add doctor data if exists and no mismatch or matches role
+    if doctor_profile and (user.role == 'doctor' or not role_mismatch):
         data['doctor'] = {
-            'user_full_name': doctor.user.get_full_name(),
-            'specialty': doctor.specialty,
-            'hospital': doctor.hospital,
-            # ... include other doctor fields
+            'user_full_name': user.get_full_name(),
+            'specialty': doctor_profile.specialty or '',
+            'hospital': doctor_profile.hospital or '',
+            'license_number': doctor_profile.license_number or '',
+            'years_of_experience': doctor_profile.years_of_experience or 0,
         }
-    except Doctor.DoesNotExist:
+    else:
         data['doctor'] = None
     
     return Response(data)
-
-
-
-

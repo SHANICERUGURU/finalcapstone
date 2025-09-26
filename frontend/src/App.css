@@ -14,3 +14,37 @@ img {
   max-width: 100%;
   height: auto;
 }
+.card {
+    border: none;
+    border-radius: 10px;
+}
+
+.card-header {
+    border-radius: 10px 10px 0 0 !important;
+}
+
+.btn {
+    border-radius: 6px;
+}
+
+.spinner-border {
+    width: 3rem;
+    height: 3rem;
+}
+.hover-shadow:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+}
+
+.card {
+    transition: all 0.3s ease;
+}
+
+.btn {
+    border-radius: 8px;
+}
+
+.badge {
+    font-size: 0.8em;
+}
