@@ -95,7 +95,7 @@ function PatientList() {
 
   if (error) {
     return (
-      <div className="container mt-4">
+      <div className="container-fluid mt-4">
         <Alert variant="danger">
           <h4 className="alert-heading">Error Loading Patients</h4>
           <p>{error}</p>
@@ -109,7 +109,7 @@ function PatientList() {
   }
 
   return (
-    <div className="container mt-4">
+    <div className="container-fluid mt-4">
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h2 className="text-primary">
           <i className="bi bi-people-fill"></i> Patient Management
@@ -147,7 +147,12 @@ function PatientList() {
                   {patients.map((patient) => (
                     <tr key={patient.id || patient.patient_id}>
                       <td>
-                        <strong>
+                        <strong
+                          style={{ cursor: 'pointer', color: '#007bff' }}
+                          onClick={() => navigate(`/patient/${patient.id || patient.patient_id}`)}
+                          onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
+                          onMouseLeave={(e) => e.target.style.textDecoration = 'none'}
+                        >
                           {patient.full_name || patient.user?.full_name || patient.user?.username || 'Unknown'}
                         </strong>
                         {patient.emergency_contact_name && (

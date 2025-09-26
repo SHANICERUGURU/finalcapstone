@@ -185,7 +185,7 @@ const PatientDetails = () => {
 
     if (error) {
         return (
-            <div className="container mt-4">
+            <div className="container-fluid mt-4">
                 <div className="alert alert-danger">
                     <h4 className="alert-heading">Error Loading Patient Profile</h4>
                     <p>{error}</p>
@@ -194,7 +194,7 @@ const PatientDetails = () => {
                         <button className="btn btn-primary" onClick={() => window.location.reload()}>
                             Try Again
                         </button>
-                        <button className="btn btn-outline-secondary" onClick={() => navigate("/patients")}>
+                        <button className="btn btn-outline-secondary" onClick={() => navigate("/patientlist")}>
                             Back to Patients
                         </button>
                         <button className="btn btn-outline-danger" onClick={() => navigate("/dashboard")}>
@@ -208,12 +208,12 @@ const PatientDetails = () => {
 
     if (!patient) {
         return (
-            <div className="container mt-4">
+            <div className="container-fluid mt-4">
                 <div className="alert alert-warning">
                     <h4 className="alert-heading">Patient Not Found</h4>
                     <p>The requested patient profile could not be found.</p>
                     <hr />
-                    <button className="btn btn-primary" onClick={() => navigate("/patients")}>
+                    <button className="btn btn-primary" onClick={() => navigate("/patientlist")}>
                         Back to Patients
                     </button>
                 </div>
@@ -283,7 +283,7 @@ const PatientDetails = () => {
     };
 
     return (
-        <div className="container mt-4">
+        <div className="container-fluid mt-4">
             {/* Header Section */}
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <div>
@@ -296,14 +296,14 @@ const PatientDetails = () => {
                                 <a href="/dashboard" className="text-decoration-none">Dashboard</a>
                             </li>
                             <li className="breadcrumb-item">
-                                <a href="/patients" className="text-decoration-none">Patients</a>
+                                <a href="/patientlist" className="text-decoration-none">Patients</a>
                             </li>
                             <li className="breadcrumb-item active">{getPatientName()}</li>
                         </ol>
                     </nav>
                 </div>
                 <div className="d-flex gap-2">
-                    <button onClick={() => navigate("/patients")} className="btn btn-outline-secondary">
+                    <button onClick={() => navigate("/patientlist")} className="btn btn-outline-secondary">
                         <i className="bi bi-arrow-left me-2"></i> Back to Patients
                     </button>
                     <button onClick={() => navigate("/dashboard")} className="btn btn-outline-primary">
@@ -476,7 +476,7 @@ const PatientDetails = () => {
                 <button onClick={() => setShowEditModal(true)} className="btn btn-primary">
                     <i className="bi bi-pencil me-2"></i> Edit Patient
                 </button>
-                <button onClick={() => navigate("/patients")} className="btn btn-outline-dark">
+                <button onClick={() => navigate("/patientlist")} className="btn btn-outline-dark">
                     <i className="bi bi-arrow-left me-2"></i> Back to List
                 </button>
             </div>

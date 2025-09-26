@@ -3,12 +3,7 @@ html, body {
   width: 100%;
 }
 
-.container, .row {
-  margin-right: 0 !important;
-  margin-left: 0 !important;
-  padding-right: 0 !important;
-  padding-left: 0 !important;
-}
+/* Allow Bootstrap responsive behavior - removed forced margin/padding overrides */
 
 img {
   max-width: 100%;

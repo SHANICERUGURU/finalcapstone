@@ -219,12 +219,10 @@ function Appointments() {
     return specialty ? specialty.label : specialtyValue;
   };
 
-  // ✅ FIXED: Get doctor name for appointment display
+
   const getAppointmentDoctorName = (appointment) => {
-    // First try to use the doctor_name from appointment serializer
     if (appointment.doctor_name) return appointment.doctor_name;
-    
-    // If not available, find the doctor in our doctors list
+  
     if (appointment.doctor && doctors.length > 0) {
       const doctor = doctors.find(d => d.id === appointment.doctor);
       if (doctor) return getDoctorDisplayName(doctor);
@@ -246,7 +244,7 @@ function Appointments() {
 
   if (!localStorage.getItem(ACCESS_TOKEN)) {
     return (
-      <div className="container mt-4">
+      <div className="container-fluid mt-4">
         <div className="row">
           <div className="col-md-12 text-center">
             <div className="alert alert-warning">
@@ -260,7 +258,7 @@ function Appointments() {
   }
 
   if (loading) return (
-    <div className="container mt-4">
+    <div className="container-fluid mt-4">
       <div className="row">
         <div className="col-md-12 text-center">
           <div className="spinner-border text-primary" role="status">
@@ -273,7 +271,7 @@ function Appointments() {
   );
 
   return (
-    <div className="container mt-4">
+    <div className="container-fluid mt-4">
       <div className="row">
         <div className="col-md-12">
           <h2 className="mb-4">Appointments</h2>

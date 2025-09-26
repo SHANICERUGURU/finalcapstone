@@ -56,7 +56,7 @@ function Navbar({ user, onLogout }) {
 
                 {user.role === "doctor" && (
                   <li className="nav-item">
-                    <Link className="nav-link text-white fw-semibold" to="/patients">
+                    <Link className="nav-link text-white fw-semibold" to="/patientlist">
                       Manage Patients
                     </Link>
                   </li>
