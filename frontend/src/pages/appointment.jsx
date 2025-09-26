@@ -20,29 +20,65 @@ function Appointments() {
 
   const getAuthHeaders = () => {
     const token = localStorage.getItem(ACCESS_TOKEN);
-    return token
-      ? { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }
-      : { "Content-Type": "application/json" };
+    if (!token) {
+      navigate("/login");
+      return {};
+    }
+    return {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json"
+    };
   };
 
-  // Redirect if not logged in
+  const fetchWithAuth = async (url, options = {}) => {
+    const headers = getAuthHeaders();
+    if (Object.keys(headers).length === 0) {
+      throw new Error("No authentication token");
+    }
+
+    try {
+      const response = await fetch(url, {
+        ...options,
+        headers: {
+          ...headers,
+          ...options.headers,
+        },
+      });
+
+      if (response.status === 401) {
+        localStorage.removeItem(ACCESS_TOKEN);
+        navigate("/login");
+        throw new Error("Authentication failed");
+      }
+
+      return response;
+    } catch (error) {
+      if (error.message === "Authentication failed") {
+        throw error;
+      }
+      throw new Error(`Network error: ${error.message}`);
+    }
+  };
+
   useEffect(() => {
-    if (!localStorage.getItem(ACCESS_TOKEN)) {
+    const token = localStorage.getItem(ACCESS_TOKEN);
+    if (!token) {
       navigate("/login");
     }
   }, [navigate]);
 
-  // Fetch appointments + doctors
   useEffect(() => {
     const fetchData = async () => {
       try {
+        const token = localStorage.getItem(ACCESS_TOKEN);
+        if (!token) {
+          navigate("/login");
+          return;
+        }
+
         const [appsRes, docsRes] = await Promise.all([
-          fetch("http://127.0.0.1:8000/api/appointments/", {
-            headers: getAuthHeaders(),
-          }),
-          fetch("http://127.0.0.1:8000/api/doctors/", {
-            headers: getAuthHeaders(),
-          }),
+          fetchWithAuth("http://127.0.0.1:8000/api/appointments/"),
+          fetchWithAuth("http://127.0.0.1:8000/api/doctors/"),
         ]);
 
         if (appsRes.ok) {
@@ -51,32 +87,31 @@ function Appointments() {
         } else if (appsRes.status === 403) {
           setError("You don't have permission to view appointments");
         } else {
-          setError("Failed to load appointments");
+          setError(`Failed to load appointments: ${appsRes.status}`);
         }
 
         if (docsRes.ok) {
           const doctorsData = await docsRes.json();
-          console.log("Doctors data:", doctorsData); // Check what fields are available
           setDoctors(doctorsData);
         }
       } catch (err) {
         console.error("Error loading data:", err);
-        setError("Network error while loading data");
+        if (!err.message.includes("Authentication")) {
+          setError("Network error while loading data");
+        }
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, []);
+  }, [navigate]);
 
-  // Handle form input change
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
     setError("");
   };
 
-  // Submit new appointment
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.specialty || !form.doctor || !form.date || !form.time) {
@@ -87,12 +122,11 @@ function Appointments() {
     try {
       const appointmentData = {
         ...form,
-        doctor: parseInt(form.doctor) // Ensure it's a number
+        doctor: parseInt(form.doctor)
       };
 
-      const res = await fetch("http://127.0.0.1:8000/api/appointments/", {
+      const res = await fetchWithAuth("http://127.0.0.1:8000/api/appointments/", {
         method: "POST",
-        headers: getAuthHeaders(),
         body: JSON.stringify(appointmentData),
       });
 
@@ -119,18 +153,18 @@ function Appointments() {
       }
     } catch (err) {
       console.error("Error booking appointment:", err);
-      setError("Network error while booking appointment");
+      if (!err.message.includes("Authentication")) {
+        setError("Network error while booking appointment");
+      }
     }
   };
 
-  // Cancel appointment
   const cancelAppointment = async (id) => {
     if (!window.confirm("Are you sure you want to cancel this appointment?")) return;
 
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/appointments/${id}/`, {
+      const res = await fetchWithAuth(`http://127.0.0.1:8000/api/appointments/${id}/`, {
         method: "DELETE",
-        headers: getAuthHeaders(),
       });
 
       const responseData = await res.json();
@@ -145,7 +179,9 @@ function Appointments() {
       }
     } catch (err) {
       console.error("Error cancelling appointment:", err);
-      setError("Network error while cancelling appointment");
+      if (!err.message.includes("Authentication")) {
+        setError("Network error while cancelling appointment");
+      }
     }
   };
 
@@ -159,28 +195,42 @@ function Appointments() {
     { value: "cardio", label: "Cardiologist" }
   ];
 
-  // ✅ FIXED: Get doctor display name - check what fields are available
   const getDoctorDisplayName = (doctor) => {
-    // Check the console log to see what fields are available in doctor objects
+    if (doctor.user_name) return doctor.user_name;
     if (doctor.user_full_name) return doctor.user_full_name;
     if (doctor.full_name) return doctor.full_name;
     if (doctor.name) return doctor.name;
-    if (doctor.user?.get_full_name) return doctor.user.get_full_name;
-    if (doctor.user?.first_name && doctor.user?.last_name) 
-      return `${doctor.user.first_name} ${doctor.user.last_name}`;
     if (doctor.first_name && doctor.last_name) 
       return `${doctor.first_name} ${doctor.last_name}`;
-    if (doctor.user?.username) return doctor.user.username;
     if (doctor.username) return doctor.username;
-    if (doctor.user?.email) return doctor.user.email;
     if (doctor.email) return doctor.email;
     return "Unknown Doctor";
   };
 
-  // ✅ FIXED: Get specialty label
   const getSpecialtyLabel = (specialtyValue) => {
+    if (doctors.length > 0) {
+      const doctor = doctors.find(d => d.specialty === specialtyValue);
+      if (doctor && doctor.specialty_display) {
+        return doctor.specialty_display;
+      }
+    }
+    
     const specialty = specialtyOptions.find(s => s.value === specialtyValue);
     return specialty ? specialty.label : specialtyValue;
+  };
+
+  // ✅ FIXED: Get doctor name for appointment display
+  const getAppointmentDoctorName = (appointment) => {
+    // First try to use the doctor_name from appointment serializer
+    if (appointment.doctor_name) return appointment.doctor_name;
+    
+    // If not available, find the doctor in our doctors list
+    if (appointment.doctor && doctors.length > 0) {
+      const doctor = doctors.find(d => d.id === appointment.doctor);
+      if (doctor) return getDoctorDisplayName(doctor);
+    }
+    
+    return "Doctor information not available";
   };
 
   const getStatusBadgeClass = (status) => {
@@ -193,6 +243,21 @@ function Appointments() {
       default: return 'bg-secondary';
     }
   };
+
+  if (!localStorage.getItem(ACCESS_TOKEN)) {
+    return (
+      <div className="container mt-4">
+        <div className="row">
+          <div className="col-md-12 text-center">
+            <div className="alert alert-warning">
+              <h4>Authentication Required</h4>
+              <p>Redirecting to login...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) return (
     <div className="container mt-4">
@@ -213,7 +278,6 @@ function Appointments() {
         <div className="col-md-12">
           <h2 className="mb-4">Appointments</h2>
 
-          {/* Success Message */}
           {successMessage && (
             <div className="alert alert-success alert-dismissible fade show">
               {successMessage}
@@ -221,7 +285,6 @@ function Appointments() {
             </div>
           )}
 
-          {/* Error Message */}
           {error && (
             <div className="alert alert-danger alert-dismissible fade show">
               {error}
@@ -229,7 +292,6 @@ function Appointments() {
             </div>
           )}
 
-          {/* Book Appointment Button */}
           <div className="d-grid gap-2 mb-4">
             <button 
               type="button" 
@@ -240,7 +302,6 @@ function Appointments() {
             </button>
           </div>
 
-          {/* Appointment Form */}
           {showBookingForm && (
             <div className="card mb-4">
               <div className="card-header bg-light">
@@ -282,7 +343,6 @@ function Appointments() {
                           .filter((d) => !form.specialty || d.specialty === form.specialty)
                           .map((d) => (
                             <option key={d.id} value={d.id}>
-                              {/* ✅ FIXED: Use the function to get proper doctor name */}
                               Dr. {getDoctorDisplayName(d)} - {getSpecialtyLabel(d.specialty)}
                             </option>
                           ))}
@@ -354,7 +414,6 @@ function Appointments() {
             </div>
           )}
 
-          {/* Appointments List */}
           <div className="card">
             <div className="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
               <h5 className="mb-0">Your Appointments ({appointments.length})</h5>
@@ -385,7 +444,7 @@ function Appointments() {
                         <th>Date</th>
                         <th>Time</th>
                         <th>Doctor</th>
-                        <th>Specialty</th>
+                        {/* ✅ REMOVED: Specialty column */}
                         <th>Reason</th>
                         <th>Status</th>
                         <th>Actions</th>
@@ -396,8 +455,11 @@ function Appointments() {
                         <tr key={app.id}>
                           <td>{new Date(app.date).toLocaleDateString()}</td>
                           <td>{app.time}</td>
-                          <td>Dr. {app.doctor_name || "Unknown Doctor"}</td>
-                          <td>{getSpecialtyLabel(app.specialty)}</td>
+                          <td>
+                            {/* ✅ FIXED: Use the new function to get doctor name */}
+                            Dr. {getAppointmentDoctorName(app)}
+                          </td>
+                          {/* ✅ REMOVED: Specialty table data */}
                           <td>{app.reason || "Not specified"}</td>
                           <td>
                             <span className={`badge ${getStatusBadgeClass(app.status)}`}>
