@@ -16,16 +16,15 @@ import PatientList from "./pages/patientlist";
 import PatientDetails from "./pages/patientdetails";
 
 function RegisterandLogout() {
-  localStorage.clear()
+  localStorage.clear();
   return <Register />;
 }
 
 function App() {
   const [user, setUser] = useState(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  
-
-const handleLogout = () => {
+  const handleLogout = () => {
     localStorage.removeItem("token");
     setUser(null);
   };
@@ -40,7 +39,10 @@ const handleLogout = () => {
         <div className="flex-grow-1">
           <Routes>
             <Route path="/" element={<Landing />} />
-            <Route path="/login" element={<Login />} />
+            <Route
+              path="/login"
+              element={<Login setIsLoggedIn={setIsLoggedIn} />}
+            />
             <Route path="/register" element={<RegisterandLogout />} />
             <Route
               path="/dashboard"
@@ -48,35 +50,40 @@ const handleLogout = () => {
                 <ProtectedRoute>
                   <Dashboard />
                 </ProtectedRoute>
-              }/>
-               <Route
+              }
+            />
+            <Route
               path="/appointments"
               element={
                 <ProtectedRoute>
                   <Appointments />
                 </ProtectedRoute>
-              }/>
-               <Route
+              }
+            />
+            <Route
               path="/profile/setup"
               element={
                 <ProtectedRoute>
                   <ProfileSetup />
                 </ProtectedRoute>
-              }/>
-               <Route
+              }
+            />
+            <Route
               path="/patientlist"
               element={
                 <ProtectedRoute>
                   <PatientList />
                 </ProtectedRoute>
-              }/>
-               <Route
+              }
+            />
+            <Route
               path="/patient/:id"
               element={
                 <ProtectedRoute>
                   <PatientDetails />
                 </ProtectedRoute>
-              }/>
+              }
+            />
 
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>

@@ -12,6 +12,7 @@ from .serializers import *
 from rest_framework.authtoken.models import Token
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.db.models import Q
+from rest_framework.permissions import AllowAny
 # patient views
 @api_view(['GET', 'POST'])
 def patient(request):
@@ -321,6 +322,7 @@ def update_appointment_status_api(request, appointment_id):
 
 # user views
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def registerUser(request):
     serializer = UserRegistrationSerializer(data=request.data)
     if serializer.is_valid():
@@ -330,33 +332,7 @@ def registerUser(request):
             'message': 'User registered successfully'
         }, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)    
-    
-@api_view(['POST'])
-def user_login(request):
-    if request.method == 'POST':
-        username = request.data.get('username')
-        password = request.data.get('password')
-        
-        user = authenticate(username=username, password=password)
-        
-        if user:
-            token, created = Token.objects.get_or_create(user=user)
-            return Response({
-                'user': Userserializer(user).data,
-                'token': token.key,
-                'message': 'Login successful'
-                })
-        else:
-            return Response(
-                {'error': 'Invalid credentials'}, 
-                status=status.HTTP_401_UNAUTHORIZED
-            )
-@api_view(['POST'])
-def user_logout(request):
-    if request.method == 'POST':
-        # Delete the token to logout
-        request.user.auth_token.delete()
-        return Response({'message': 'Successfully logged out'})
+
     
 @api_view(['GET', 'PUT', 'PATCH'])
 def user_profile(request):

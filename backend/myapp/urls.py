@@ -18,8 +18,6 @@ urlpatterns = [
     
     # authenication urls
     path('api/auth/register/', views.registerUser, name='api-register'),
-    path('api/auth/login/', views.user_login, name='api-login'),
-    path('api/auth/logout/', views.user_logout, name='api-logout'),
 
     # profile setup urls
     path('api/profiles/patient/setup/', views.setup_patient_profile, name='api-setup-patient'),
