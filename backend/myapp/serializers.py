@@ -30,9 +30,11 @@ class DoctorSerializer(serializers.ModelSerializer):
 class Appointmentserializer(serializers.ModelSerializer):
     patient_name = serializers.CharField(source='patient.user.get_full_name', read_only=True)
     doctor_name = serializers.CharField(source='doctor.user.get_full_name', read_only=True)
+    
     class Meta:
         model = Appointment
-        fields = '__all__'      
+        fields = '__all__'
+        read_only_fields = ('patient',)
 
 
 # for creating new users with hashed passwords

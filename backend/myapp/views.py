@@ -220,6 +220,7 @@ def patient_detail(request, pk):
 
 # appointment views
 @api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
 def appointments(request):
     if request.method == 'GET':
         if request.user.role == 'PATIENT':
@@ -228,61 +229,53 @@ def appointments(request):
                 appointments = Appointment.objects.filter(patient=patient_profile)
             except AttributeError:
                 return Response({'error': 'Patient profile not found'}, status=status.HTTP_403_FORBIDDEN)
-        
+
         elif request.user.role == 'DOCTOR':
             try:
                 doctor_profile = request.user.doctor_profile
                 appointments = Appointment.objects.filter(doctor=doctor_profile)
             except AttributeError:
                 return Response({'error': 'Doctor profile not found'}, status=status.HTTP_403_FORBIDDEN)
-        
+
         else:  # Admin or other roles
-            appointments = Appointment.objects.all()  # Or restrict as needed
-        
+            appointments = Appointment.objects.all()
+
         serializer = Appointmentserializer(appointments, many=True)
         return Response(serializer.data)
-    
+
     elif request.method == 'POST':
+        # ✅ Only patients can create
+        if request.user.role != 'PATIENT':
+            return Response({'error': 'Only patients can create appointments'}, status=status.HTTP_403_FORBIDDEN)
+
         try:
             patient = request.user.patient_profile
             serializer = Appointmentserializer(data=request.data)
+
             if serializer.is_valid():
+                # Extra validation: doctor specialty match
+                doctor_id = request.data.get('doctor')
+                specialty = request.data.get('specialty')
+
+                if doctor_id and specialty:
+                    try:
+                        doctor = Doctor.objects.get(id=doctor_id)
+                        if doctor.specialty != specialty:
+                            return Response(
+                                {'error': 'Doctor specialty mismatch'},
+                                status=status.HTTP_400_BAD_REQUEST
+                            )
+                    except Doctor.DoesNotExist:
+                        return Response({'error': 'Doctor not found'}, status=status.HTTP_400_BAD_REQUEST)
+
                 serializer.save(patient=patient)
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
+
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
         except AttributeError:
             return Response({'error': 'Patient profile not found'}, status=status.HTTP_403_FORBIDDEN)
-    elif request.method == 'POST':
-       try:
-        patient = request.user.patient_profile
-        serializer = Appointmentserializer(data=request.data)
-        
-        if serializer.is_valid():
-            # ✅ EXTRA VALIDATION: Check if doctor has the selected specialty
-            doctor_id = request.data.get('doctor')
-            specialty = request.data.get('specialty')
-            
-            if doctor_id and specialty:
-                try:
-                    doctor = Doctor.objects.get(id=doctor_id)
-                    if doctor.specialty != specialty:
-                        return Response(
-                            {'error': 'Doctor specialty mismatch'}, 
-                            status=status.HTTP_400_BAD_REQUEST
-                        )
-                except Doctor.DoesNotExist:
-                    return Response(
-                        {'error': 'Doctor not found'}, 
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-            
-            serializer.save(patient=patient)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
-       except AttributeError:
-        return Response({'error': 'Patient profile not found'}, status=status.HTTP_403_FORBIDDEN)
+
         
 @login_required
 def update_appointment_status(request, appointment_id):
@@ -302,22 +295,25 @@ def update_appointment_status(request, appointment_id):
         return redirect("dashboard")
     
 @api_view(['PUT'])
+@permission_classes([IsAuthenticated])
 def update_appointment_status_api(request, appointment_id):
     try:
         appointment = Appointment.objects.get(id=appointment_id)
 
-        # Only the doctor assigned to the appointment can update
-        if hasattr(request.user, 'doctor_profile') and appointment.doctor == request.user.doctor_profile:
+        # ✅ Only assigned doctor can update
+        if request.user.role == 'DOCTOR' and hasattr(request.user, 'doctor_profile') and appointment.doctor == request.user.doctor_profile:
             new_status = request.data.get("status")
             if new_status in dict(Appointment.appointment_status).keys():
                 appointment.status = new_status
                 appointment.save()
-                return Response({'message': 'Appointment status updated'}, status=200)
-            return Response({'error': 'Invalid status'}, status=400)
-        else:
-            return Response({'error': 'Not allowed'}, status=403)
+                return Response({'message': 'Appointment status updated'}, status=status.HTTP_200_OK)
+            return Response({'error': 'Invalid status'}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({'error': 'Not allowed'}, status=status.HTTP_403_FORBIDDEN)
+
     except Appointment.DoesNotExist:
-        return Response({'error': 'Appointment not found'}, status=404)   
+        return Response({'error': 'Appointment not found'}, status=status.HTTP_404_NOT_FOUND)
+ 
 
 # user views
 @api_view(['POST'])
