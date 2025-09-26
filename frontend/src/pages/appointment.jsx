@@ -46,13 +46,21 @@ function Appointments() {
         ]);
 
         if (appsRes.ok) {
-          setAppointments(await appsRes.json());
+          const appointmentsData = await appsRes.json();
+          setAppointments(appointmentsData);
+        } else if (appsRes.status === 403) {
+          setError("You don't have permission to view appointments");
+        } else {
+          setError("Failed to load appointments");
         }
+
         if (docsRes.ok) {
-          setDoctors(await docsRes.json());
+          const doctorsData = await docsRes.json();
+          setDoctors(doctorsData);
         }
       } catch (err) {
         console.error("Error loading data:", err);
+        setError("Network error while loading data");
       } finally {
         setLoading(false);
       }
@@ -76,15 +84,21 @@ function Appointments() {
     }
 
     try {
+      const appointmentData = {
+        ...form,
+        doctor: parseInt(form.doctor) // Ensure it's a number
+      };
+
       const res = await fetch("http://127.0.0.1:8000/api/appointments/", {
         method: "POST",
         headers: getAuthHeaders(),
-        body: JSON.stringify(form),
+        body: JSON.stringify(appointmentData),
       });
 
+      const responseData = await res.json();
+
       if (res.ok) {
-        const newApp = await res.json();
-        setAppointments([newApp, ...appointments]);
+        setAppointments([responseData, ...appointments]);
         setForm({ specialty: "", doctor: "", date: "", time: "", reason: "" });
         setShowBookingForm(false);
         setSuccessMessage("Appointment booked successfully!");
@@ -92,29 +106,50 @@ function Appointments() {
         
         setTimeout(() => setSuccessMessage(""), 3000);
       } else {
-        setError("Failed to book appointment");
+        // Handle specific backend errors
+        if (responseData.error === 'Patient profile not found') {
+          setError("Please complete your patient profile first");
+        } else if (responseData.error === 'Doctor specialty mismatch') {
+          setError("Selected doctor doesn't match the specialty");
+        } else if (responseData.error === 'Only patients can create appointments') {
+          setError("Only patients can book appointments");
+        } else {
+          setError(responseData.error || "Failed to book appointment");
+        }
       }
-    } catch {
-      setError("Network error");
+    } catch (err) {
+      console.error("Error booking appointment:", err);
+      setError("Network error while booking appointment");
     }
   };
 
-  // Cancel appointment
+  // ✅ FIXED: Cancel appointment with proper error handling
   const cancelAppointment = async (id) => {
     if (!window.confirm("Are you sure you want to cancel this appointment?")) return;
 
     try {
+      console.log("Attempting to cancel appointment ID:", id);
+      
       const res = await fetch(`http://127.0.0.1:8000/api/appointments/${id}/`, {
         method: "DELETE",
         headers: getAuthHeaders(),
       });
+
+      const responseData = await res.json();
+
       if (res.ok) {
+        console.log("Appointment cancelled successfully");
         setAppointments(appointments.filter((app) => app.id !== id));
         setSuccessMessage("Appointment cancelled successfully!");
+        setError("");
         setTimeout(() => setSuccessMessage(""), 3000);
+      } else {
+        console.error("Failed to cancel appointment:", responseData);
+        setError(`Failed to cancel: ${responseData.error || 'Unknown error'}`);
       }
-    } catch {
-      console.error("Error cancelling appointment");
+    } catch (err) {
+      console.error("Error cancelling appointment:", err);
+      setError("Network error while cancelling appointment");
     }
   };
 
@@ -127,6 +162,17 @@ function Appointments() {
     { value: "PAEDIATRICIAN", label: "Paediatrician" },
     { value: "cardio", label: "Cardiologist" }
   ];
+
+  const getStatusBadgeClass = (status) => {
+    switch (status) {
+      case 'confirmed': return 'bg-success';
+      case 'pending': return 'bg-warning';
+      case 'cancelled': return 'bg-danger';
+      case 'completed': return 'bg-info';
+      case 'scheduled': return 'bg-primary';
+      default: return 'bg-secondary';
+    }
+  };
 
   if (loading) return (
     <div className="container mt-4">
@@ -209,6 +255,7 @@ function Appointments() {
                         value={form.doctor}
                         onChange={handleChange}
                         required
+                        disabled={!form.specialty}
                       >
                         <option value="">Select Doctor</option>
                         {doctors
@@ -219,10 +266,8 @@ function Appointments() {
                             </option>
                           ))}
                       </select>
-                      {form.specialty && (
-                        <div className="form-text">
-                          {doctors.filter(d => d.specialty === form.specialty).length} doctors available
-                        </div>
+                      {!form.specialty && (
+                        <div className="form-text">Please select a specialty first</div>
                       )}
                     </div>
                   </div>
@@ -289,7 +334,7 @@ function Appointments() {
               <h5 className="mb-0">Your Appointments ({appointments.length})</h5>
               {appointments.length > 0 && (
                 <span className="badge bg-light text-dark">
-                  {appointments.filter(app => app.status === 'confirmed').length} Confirmed
+                  {appointments.filter(app => app.status === 'confirmed' || app.status === 'scheduled').length} Active
                 </span>
               )}
             </div>
@@ -331,11 +376,7 @@ function Appointments() {
                           </td>
                           <td>{app.reason || "Not specified"}</td>
                           <td>
-                            <span className={`badge ${
-                              app.status === 'confirmed' ? 'bg-success' :
-                              app.status === 'pending' ? 'bg-warning' : 
-                              app.status === 'cancelled' ? 'bg-danger' : 'bg-secondary'
-                            }`}>
+                            <span className={`badge ${getStatusBadgeClass(app.status)}`}>
                               {app.status?.charAt(0).toUpperCase() + app.status?.slice(1)}
                             </span>
                           </td>
@@ -343,9 +384,11 @@ function Appointments() {
                             <button
                               className="btn btn-sm btn-outline-danger"
                               onClick={() => cancelAppointment(app.id)}
-                              disabled={app.status === "cancelled"}
+                              disabled={app.status === "cancelled" || app.status === "completed"}
+                              title={app.status === "cancelled" ? "Already cancelled" : app.status === "completed" ? "Appointment completed" : "Cancel appointment"}
                             >
-                              {app.status === 'cancelled' ? 'Cancelled' : 'Cancel'}
+                              {app.status === 'cancelled' ? 'Cancelled' : 
+                               app.status === 'completed' ? 'Completed' : 'Cancel'}
                             </button>
                           </td>
                         </tr>

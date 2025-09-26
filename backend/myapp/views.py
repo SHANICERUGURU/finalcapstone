@@ -219,9 +219,48 @@ def patient_detail(request, pk):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 # appointment views
-@api_view(['GET', 'POST'])
+@api_view(['GET', 'POST', 'DELETE', 'PUT'])
 @permission_classes([IsAuthenticated])
-def appointments(request):
+def appointments(request, appointment_id=None):
+    # Handle individual appointment operations (DELETE, PUT, GET single)
+    if appointment_id is not None:
+        try:
+            appointment = Appointment.objects.get(id=appointment_id)
+        except Appointment.DoesNotExist:
+            return Response({'error': 'Appointment not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        # Check permissions for individual appointment access
+        if request.user.role == 'PATIENT':
+            if not hasattr(request.user, 'patient_profile') or appointment.patient != request.user.patient_profile:
+                return Response({'error': 'Not authorized to access this appointment'}, status=status.HTTP_403_FORBIDDEN)
+        elif request.user.role == 'DOCTOR':
+            if not hasattr(request.user, 'doctor_profile') or appointment.doctor != request.user.doctor_profile:
+                return Response({'error': 'Not authorized to access this appointment'}, status=status.HTTP_403_FORBIDDEN)
+
+        if request.method == 'GET':
+            serializer = Appointmentserializer(appointment)
+            return Response(serializer.data)
+
+        elif request.method == 'DELETE':
+            # Only patient who owns the appointment or assigned doctor can cancel
+            if request.user.role == 'PATIENT' and hasattr(request.user, 'patient_profile') and appointment.patient == request.user.patient_profile:
+                appointment.delete()
+                return Response({'message': 'Appointment cancelled successfully'}, status=status.HTTP_200_OK)
+            elif request.user.role == 'DOCTOR' and hasattr(request.user, 'doctor_profile') and appointment.doctor == request.user.doctor_profile:
+                appointment.delete()
+                return Response({'message': 'Appointment cancelled successfully'}, status=status.HTTP_200_OK)
+            else:
+                return Response({'error': 'Not authorized to cancel this appointment'}, status=status.HTTP_403_FORBIDDEN)
+
+        elif request.method == 'PUT':
+            # For updating appointment details
+            serializer = Appointmentserializer(appointment, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    # Handle list operations (GET all, POST new)
     if request.method == 'GET':
         if request.user.role == 'PATIENT':
             try:
@@ -275,6 +314,8 @@ def appointments(request):
 
         except AttributeError:
             return Response({'error': 'Patient profile not found'}, status=status.HTTP_403_FORBIDDEN)
+
+    return Response({'error': 'Method not allowed'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
         
 @login_required
