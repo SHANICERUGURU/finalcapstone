@@ -42,7 +42,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             "first_name", "last_name", "username", "email",
-            "phone_number", "gender", "date_of_birth", "role",
+            "phone", "gender", "date_of_birth", "role",
             "password", "confirm_password"
         ]
 
@@ -57,7 +57,6 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         return user
 
 
-# Add these to your serializers.py
 class DoctorPatientSerializer(serializers.ModelSerializer):
 
     patient_id = serializers.IntegerField(source='id')

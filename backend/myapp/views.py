@@ -10,6 +10,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from .serializers import *
 from rest_framework.authtoken.models import Token
+from rest_framework_simplejwt.tokens import RefreshToken
 from django.db.models import Q
 # patient views
 @api_view(['GET', 'POST'])
@@ -321,17 +322,14 @@ def update_appointment_status_api(request, appointment_id):
 # user views
 @api_view(['POST'])
 def registerUser(request):
-    if request.method == 'POST':
-        serializer = UserRegistrationSerializer(data=request.data)
-        if serializer.is_valid():
-            user = serializer.save() 
-            token, created = Token.objects.get_or_create(user=user)
-            return Response({
-                'user': Userserializer(user).data, 
-                'token': token.key,
-                'message': 'User registered successfully'
-            }, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    serializer = UserRegistrationSerializer(data=request.data)
+    if serializer.is_valid():
+        user = serializer.save() 
+        return Response({
+            'user': Userserializer(user).data,
+            'message': 'User registered successfully'
+        }, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)    
     
 @api_view(['POST'])
 def user_login(request):
