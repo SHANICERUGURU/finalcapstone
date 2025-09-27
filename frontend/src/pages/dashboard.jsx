@@ -282,6 +282,14 @@ const Dashboard = () => {
                                                         <span>{patient.current_medications || "None recorded"}</span>
                                                     </div>
                                                     <div className="col-12">
+                                                        <strong className="d-block text-muted small">Last doctor</strong>
+                                                        <span>{patient.last_doctor || "doctor name"}</span>
+                                                    </div>
+                                                    <div className="col-12">
+                                                        <strong className="d-block text-muted small">Last appointment</strong>
+                                                        <span>{patient.last_appointment || "last appointment"}</span>
+                                                    </div>
+                                                    <div className="col-12">
                                                         <strong className="d-block text-muted small">Emergency Contact</strong>
                                                         <div>
                                                             {patient.emergency_contact_name ? (
@@ -292,6 +300,8 @@ const Dashboard = () => {
                                                                     )}
                                                                 </>
                                                             ) : "Not provided"}
+
+                                                            
                                                         </div>
                                                     </div>
                                                 </div>
