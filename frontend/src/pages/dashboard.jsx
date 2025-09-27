@@ -379,7 +379,7 @@ const Dashboard = () => {
                                                 <div className="d-grid gap-2">
                                                     <button 
                                                         className="btn btn-info btn-lg py-3"
-                                                        onClick={() => navigate("/appointments")}>
+                                                        onClick={() => navigate("/doctor-appointments")}>
                                                         <i className="bi bi-calendar-week me-2"></i>
                                                         View Appointments
                                                     </button>

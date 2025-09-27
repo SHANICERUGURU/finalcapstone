@@ -15,6 +15,7 @@ import PatientList from "./pages/patientlist";
 import PatientDetails from "./pages/patientdetails";
 import DoctorRegistration from "./pages/doctorregistration";
 import PatientEditForm from "./pages/patienteditform";
+import DoctorAppointments from "./pages/doctorAppointments";
 import api from "./api";
 import { ACCESS_TOKEN } from "./constants";
 
@@ -83,6 +84,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <PatientEditForm />
+                </ProtectedRoute>
+              }
+            />
+             <Route
+              path="/doctor-appointments"
+              element={
+                <ProtectedRoute>
+                  <DoctorAppointments />
                 </ProtectedRoute>
               }
             />
