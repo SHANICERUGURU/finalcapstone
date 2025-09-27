@@ -261,10 +261,7 @@ function DoctorAppointments() {
             Doctor Appointments
           </h2>
 
-          {/* Debug button - remove in production */}
-          <button onClick={testEndpoint} className="btn btn-sm btn-warning mb-3">
-            Debug: Test Endpoint
-          </button>
+         
 
           {successMessage && (
             <div className="alert alert-success alert-dismissible fade show">

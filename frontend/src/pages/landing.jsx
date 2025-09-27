@@ -12,7 +12,7 @@ const Landing = () => {
       <div className="row align-items-center py-5">
         <div className="col-lg-7">
           <h1 className="display-4 fw-bold text-primary mb-3">
-            Welcome to the Medical Records System
+            Welcome to the Documed Medical Records System
           </h1>
           <p className="lead mb-4">
             Your health, our priority. Manage your medical records and

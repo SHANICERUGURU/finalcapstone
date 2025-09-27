@@ -6,7 +6,7 @@ function Navbar({ user, onLogout }) {
       <div className="container">
         {/* Brand */}
         <Link className="navbar-brand fw-bold fs-4" to="/">
-          Medical Records
+          DocuMed
         </Link>
 
         {/* Mobile Toggler */}
